@@ -136,12 +136,16 @@ QString RdpLauncher::buildCommandLine(const ConnectionInfo &info) const
 
 QString RdpLauncher::xfreerdpPath() const
 {
-    // 尝试在系统 PATH 中查找 xfreerdp
-    QString path = QStandardPaths::findExecutable("xfreerdp");
+    // 尝试在系统 PATH 中按优先级查找 xfreerdp3 或 xfreerdp
+    QString path = QStandardPaths::findExecutable("xfreerdp3");
+    if (!path.isEmpty()) return path;
+    
+    path = QStandardPaths::findExecutable("xfreerdp");
     if (!path.isEmpty()) return path;
 
     // 尝试常见安装路径
     QStringList candidates = {
+        "/usr/bin/xfreerdp3",
         "/usr/bin/xfreerdp",
         "/usr/local/bin/xfreerdp",
 #ifdef Q_OS_WIN
