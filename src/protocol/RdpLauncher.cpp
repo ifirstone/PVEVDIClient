@@ -38,9 +38,17 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // 认证信息
     if (!info.username.isEmpty()) {
         args << QString("/u:%1").arg(info.username);
+    } else {
+        // 为了实现空密直连并在远程画面输入密码，我们需要随意提供一个假账号，
+        // 否则 freeRDP 必定在终端抛出提示符索要系统本地用户名对应的密码并引起阻塞。
+        args << "/u:GuestUser";
     }
+
     if (!info.password.isEmpty()) {
         args << QString("/p:%1").arg(info.password);
+    } else {
+        // Windows 默认不允许使用空密码进行 RDP 登录，为了让画面弹出来要求重新输入，传一个假密码
+        args << "/p:DefaultRDPPassword01!";
     }
     if (!info.domain.isEmpty()) {
         args << QString("/d:%1").arg(info.domain);
