@@ -25,7 +25,7 @@ jobs:
     - name: 编译当前项目
       run: |
         # 创建一个专门的构建目录保持源码目录整洁
-        mkdir build && cd build
+        mkdir github_build && cd github_build
         qmake ../PVEClient.pro
         make -j$(nproc)
 
@@ -33,5 +33,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: PVEClient-Debian-x64
-        path: build/PVEClient
+        path: github_build/PVEClient
         retention-days: 7
