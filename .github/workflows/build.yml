@@ -39,5 +39,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: PVEClient-Debian-x64
-        path: github_build/PVEClient
+        path: bin/PVEClient
         retention-days: 7
