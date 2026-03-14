@@ -334,9 +334,10 @@ void LoginView::onShutdown()
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (reply == QMessageBox::Yes) {
 #ifdef Q_OS_LINUX
-        QProcess::startDetached("shutdown", QStringList() << "-h" << "now");
+        // 使用现代 systemctl 命令，配合 polkit，普通桌面用户可直接执行
+        QProcess::startDetached("systemctl", QStringList() << "poweroff");
 #else
-        // Windows 下调用关机命令（测试用）
+        // Windows 下调用关机命令
         QProcess::startDetached("shutdown", QStringList() << "/s" << "/t" << "0");
 #endif
     }
@@ -349,8 +350,10 @@ void LoginView::onReboot()
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (reply == QMessageBox::Yes) {
 #ifdef Q_OS_LINUX
-        QProcess::startDetached("reboot", QStringList());
+        // 使用现代 systemctl 命令，配合 polkit，普通桌面用户可直接执行
+        QProcess::startDetached("systemctl", QStringList() << "reboot");
 #else
+        // Windows 下调用重启命令
         QProcess::startDetached("shutdown", QStringList() << "/r" << "/t" << "0");
 #endif
     }
