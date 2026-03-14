@@ -111,6 +111,9 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // 证书处理：FreeRDP 3 建议用 /cert:tofu, 兼容旧版用 /cert:ignore
     args << "/cert:tofu" << "/cert:ignore";
 
+    // 强制使用 TLS 安全层（绕过 NLA），这样即使密码为空/错误也能先弹出远程画面
+    args << "/sec:tls";
+
     // 压缩与色彩优化降低卡顿
     args << "/compression-level:2" << "/bpp:32" << "+fonts";
 
