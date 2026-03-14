@@ -1,0 +1,37 @@
+name: Debian Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  # 支持手动从网页触发Actions编译
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu (非常接近 Debian 12/13)
+
+    steps:
+    - name: 检出源码
+      uses: actions/checkout@v4
+
+    - name: 更新并在 Ubuntu 上安装 Qt5 与编译依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
+                                libqt5network5 libqt5gui5 libqt5widgets5
+
+    - name: 编译当前项目
+      run: |
+        # 创建一个专门的构建目录保持源码目录整洁
+        mkdir build && cd build
+        qmake ../PVEClient.pro
+        make -j$(nproc)
+
+    - name: 上传编译好的二进制文件到网页
+      uses: actions/upload-artifact@v4
+      with:
+        name: PVEClient-Debian-x64
+        path: build/PVEClient
+        retention-days: 7

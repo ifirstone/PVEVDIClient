@@ -1,0 +1,34 @@
+# 编译产生的中间文件和目录
+debug/
+release/
+obj/
+moc/
+ui/
+rcc/
+Makefile*
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.so.*
+PVEClient
+
+# Qt Creator specific
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.stash
+.qmake.stash
+
+# IDE/OS specific
+.vscode/
+.idea/
+*.suo
+*.sln
+*.user
+*.userosscache
+*.sln.docstates
+.DS_Store
+Thumbs.db
