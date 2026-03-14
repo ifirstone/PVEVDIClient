@@ -100,11 +100,14 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
         args << "/printer";
     }
 
-    // 忽略证书警告
-    args << "/cert:ignore";
+    // 证书处理：FreeRDP 3 建议用 /cert:tofu, 兼容旧版用 /cert:ignore
+    args << "/cert:tofu" << "/cert:ignore";
 
-    // 压缩优化
-    args << "/compression-level:2";
+    // 压缩与色彩优化降低卡顿
+    args << "/compression-level:2" << "/bpp:32" << "+fonts";
+
+    // 解决 Linux 下 Wayland/X11 的焦点或黑屏问题（+aero 等特效支持）
+    args << "+aero" << "+menu-anims" << "+window-drag";
 
     // 额外自定义参数
     if (!info.extraArgs.isEmpty()) {

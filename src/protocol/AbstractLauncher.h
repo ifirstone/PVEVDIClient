@@ -57,7 +57,20 @@ protected:
     ProcessRunner *m_runner;
 
 private slots:
-    void onProcessFinished(int exitCode, QProcess::ExitStatus /*exitStatus*/) {
+    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+        if (exitCode != 0 || exitStatus == QProcess::CrashExit) {
+            QString errorMsg = m_runner->standardError().trimmed();
+            if (errorMsg.isEmpty()) {
+                errorMsg = QString("连接进程意外结束，退出码: %1").arg(exitCode);
+            } else {
+                // 如果有多行错误，只取最后几行关键错误
+                QStringList lines = errorMsg.split('\n', QString::SkipEmptyParts);
+                if (lines.size() > 3) {
+                    errorMsg = lines.mid(lines.size() - 3).join('\n');
+                }
+            }
+            emit connectionError(errorMsg);
+        }
         emit disconnected(exitCode);
     }
 };
