@@ -77,6 +77,7 @@ bool ConfigManager::load(const QString &filePath)
         m_kioskMode = settings["kiosk_mode"].toBool(false);
         m_autoConnect = settings["auto_connect"].toBool(false);
         m_autoConnectId = settings["auto_connect_id"].toString();
+        m_debugMode = settings["debug_mode"].toBool(false);
     }
 
     qDebug() << "配置加载成功，共" << m_connections.size() << "个连接";
@@ -117,6 +118,7 @@ bool ConfigManager::save(const QString &filePath)
     settings["kiosk_mode"] = m_kioskMode;
     settings["auto_connect"] = m_autoConnect;
     settings["auto_connect_id"] = m_autoConnectId;
+    settings["debug_mode"] = m_debugMode;
     root["settings"] = settings;
 
     QFile file(path);
@@ -208,6 +210,10 @@ void ConfigManager::setAutoConnect(bool enabled, const QString &connectionId)
     m_autoConnectId = connectionId;
     save();
 }
+
+// 调试模式 getter/setter
+bool ConfigManager::debugMode() const { return m_debugMode; }
+void ConfigManager::setDebugMode(bool enabled) { m_debugMode = enabled; save(); }
 
 // RDP 外设重定向 getter
 bool ConfigManager::rdpSound()      const { return m_rdpSound; }

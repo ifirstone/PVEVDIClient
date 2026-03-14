@@ -265,6 +265,11 @@ void SettingsDialog::setupUI()
     m_chkAutoConnect->setStyleSheet(CHECK_STYLE);
     behaviorLayout->addWidget(m_chkAutoConnect);
 
+    m_chkDebugMode = new QCheckBox("🔧 调试模式（显示连接过程中的详细错误信息）");
+    m_chkDebugMode->setChecked(m_config->debugMode());
+    m_chkDebugMode->setStyleSheet(CHECK_STYLE);
+    behaviorLayout->addWidget(m_chkDebugMode);
+
     mainLayout->addWidget(behaviorGroup);
 
     // ===== RDP 外设重定向区 =====
@@ -383,6 +388,7 @@ void SettingsDialog::onAccepted()
     m_config->setLanguage(m_comboLanguage->currentData().toString());
     m_config->setKioskMode(m_chkKioskMode->isChecked());
     m_config->setAutoConnect(m_chkAutoConnect->isChecked());
+    m_config->setDebugMode(m_chkDebugMode->isChecked());
     m_config->setRdpRedirection(
         m_chkRdpSound->isChecked(),
         m_chkRdpMic->isChecked(),

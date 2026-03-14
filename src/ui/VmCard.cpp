@@ -7,6 +7,7 @@
 #include <QPainterPath>
 #include <QIntValidator>
 #include <QDebug>
+#include <QPixmap>
 
 VmCard::VmCard(const QJsonObject &vmInfo,
                ConfigManager *configManager,
@@ -80,10 +81,14 @@ void VmCard::setupUI()
     // --- 顶部：OS图标 + 名称+ID ---
     QHBoxLayout *headerRow = new QHBoxLayout();
 
-    m_lblOsIcon = new QLabel(osIcon());
+    m_lblOsIcon = new QLabel();
     m_lblOsIcon->setAlignment(Qt::AlignCenter);
-    m_lblOsIcon->setFixedWidth(52);
-    m_lblOsIcon->setStyleSheet("font-size: 38px;");
+    m_lblOsIcon->setFixedSize(48, 48);
+    // 从 Qt 资源系统中加载 SVG 图标，确保跨平台显示
+    QPixmap osPix(osIcon());
+    if (!osPix.isNull()) {
+        m_lblOsIcon->setPixmap(osPix.scaled(42, 42, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
 
     QVBoxLayout *nameCol = new QVBoxLayout();
     m_lblName = new QLabel(name);
@@ -243,12 +248,12 @@ void VmCard::setupUI()
 QString VmCard::osIcon() const
 {
     QString name = m_vmInfo["name"].toString().toLower();
-    if (name.contains("win"))    return "🪟";
-    if (name.contains("ubuntu")) return "🐧";
-    if (name.contains("debian")) return "🐧";
-    if (name.contains("centos") || name.contains("rhel")) return "🎩";
-    if (name.contains("mac"))    return "🍎";
-    return "🖥";
+    if (name.contains("win"))    return ":/icons/os_windows.svg";
+    if (name.contains("ubuntu")) return ":/icons/os_linux.svg";
+    if (name.contains("debian")) return ":/icons/os_linux.svg";
+    if (name.contains("centos") || name.contains("rhel")) return ":/icons/os_redhat.svg";
+    if (name.contains("mac"))    return ":/icons/os_macos.svg";
+    return ":/icons/os_generic.svg";
 }
 
 void VmCard::updateStatusStyle()
@@ -381,7 +386,11 @@ void VmCard::onConnectionError(const ConnectionInfo &info, const QString &error)
         m_waitingForIp = false;
         m_btnConnect->setText("▶  连接桌面");
         m_btnConnect->setEnabled(m_vmInfo["status"].toString() == "running");
-        QMessageBox::critical(parentWidget(), "连接错误", error);
+
+        // 仅在调试模式开启时，才弹出详细错误信息
+        if (m_configManager->debugMode()) {
+            QMessageBox::critical(parentWidget(), "连接错误", error);
+        }
     }
 }
 

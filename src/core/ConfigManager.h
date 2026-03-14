@@ -43,6 +43,10 @@ public:
     void setKioskMode(bool enabled);
     void setAutoConnect(bool enabled, const QString &connectionId = QString());
 
+    // 调试模式（开启后显示连接过程中的详细错误弹窗）
+    bool debugMode() const;
+    void setDebugMode(bool enabled);
+
     // RDP 外设重定向设置
     bool rdpSound() const;
     bool rdpMicrophone() const;
@@ -80,6 +84,7 @@ private:
     bool m_kioskMode = false;
     bool m_autoConnect = false;
     QString m_autoConnectId;
+    bool m_debugMode = false;
 
     // RDP 外设重定向设置（默认配置）
     bool m_rdpSound      = true;

@@ -40,6 +40,7 @@ private:
     // 行为设置
     QCheckBox *m_chkKioskMode;
     QCheckBox *m_chkAutoConnect;
+    QCheckBox *m_chkDebugMode;
 
     // RDP 外设重定向
     QCheckBox *m_chkRdpSound;

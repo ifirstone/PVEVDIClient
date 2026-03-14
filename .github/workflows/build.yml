@@ -20,7 +20,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
-                                libqt5network5 libqt5gui5 libqt5widgets5
+                                libqt5network5 libqt5gui5 libqt5widgets5 \
+                                libqt5svg5 libqt5svg5-dev
 
     - name: 编译当前项目
       run: |
