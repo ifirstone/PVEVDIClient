@@ -24,9 +24,15 @@ jobs:
 
     - name: 编译当前项目
       run: |
+        pwd
+        ls -la
+        ls -R
         # 创建一个专门的构建目录保持源码目录整洁
         mkdir github_build && cd github_build
-        qmake ../PVEClient.pro
+        
+        # 针对潜在的目录层级问题寻找正确的 .pro 文件
+        PRO_FILE=$(find .. -maxdepth 2 -name "*.pro" | head -n 1)
+        qmake $PRO_FILE
         make -j$(nproc)
 
     - name: 上传编译好的二进制文件到网页
