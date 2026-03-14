@@ -114,12 +114,6 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // 压缩与色彩优化降低卡顿
     args << "/compression-level:2" << "/bpp:32" << "+fonts";
 
-    // 强制指定 TLS 安全层绕过 NLA，防止试图在终端要求输入密码
-    args << "/sec:tls";
-    
-    // 禁止 FreeRDP 在后台向终端发起交互式密码询问（因为我们是 GUI，没法在终端敲字，一问就会报 Resource temporarily unavailable）
-    args << "-auth-only" << "-nego";
-
     // 额外自定义参数
     if (!info.extraArgs.isEmpty()) {
         args << info.extraArgs.split(" ", QString::SkipEmptyParts);
