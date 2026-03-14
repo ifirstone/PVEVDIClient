@@ -109,6 +109,9 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // 解决 Linux 下 Wayland/X11 的焦点或黑屏问题（+aero 等特效支持）
     args << "+aero" << "+menu-anims" << "+window-drag";
 
+    // 强制指定 TLS 安全层绕过 NLA，防止未带域账号时尝试 NLA 导致后台需要输入框而 Cancel
+    args << "/sec:tls";
+
     // 额外自定义参数
     if (!info.extraArgs.isEmpty()) {
         args << info.extraArgs.split(" ", QString::SkipEmptyParts);
