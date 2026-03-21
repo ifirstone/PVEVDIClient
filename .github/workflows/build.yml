@@ -1,44 +1,104 @@
-name: Debian Build
+name: Multi-Platform Build
 
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  # 支持手动从网页触发Actions编译
+  # 支持手动从网页触发 Actions 编译
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest # 使用最新的 Ubuntu (非常接近 Debian 12/13)
-
+  build-linux-x64:
+    name: Build Linux x86_64
+    runs-on: ubuntu-latest
     steps:
-    - name: 检出源码
+    - name: 检出源码 (Checkout)
       uses: actions/checkout@v4
 
-    - name: 更新并在 Ubuntu 上安装 Qt5 与编译依赖
+    - name: 安装 Qt 与依赖 (Install Dependencies)
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
                                 libqt5network5 libqt5gui5 libqt5widgets5 \
                                 libqt5svg5 libqt5svg5-dev
 
-    - name: 编译当前项目
+    - name: 编译项目 (Build)
       run: |
-        pwd
-        ls -la
-        ls -R
-        # 创建一个专门的构建目录保持源码目录整洁
-        mkdir github_build && cd github_build
-        
-        # 针对潜在的目录层级问题寻找正确的 .pro 文件
+        mkdir build && cd build
+        # 寻找 .pro 文件
         PRO_FILE=$(find .. -maxdepth 2 -name "*.pro" | head -n 1)
         qmake $PRO_FILE
         make -j$(nproc)
 
-    - name: 上传编译好的二进制文件到网页
+    - name: 上传构建产物 (Upload Artifact)
       uses: actions/upload-artifact@v4
       with:
-        name: PVEClient-Debian-x64
+        name: PVEClient-Linux-x64
         path: bin/PVEClient
+        retention-days: 7
+
+  build-linux-arm64:
+    name: Build Linux ARM64
+    runs-on: ubuntu-latest
+    steps:
+    - name: 检出源码 (Checkout)
+      uses: actions/checkout@v4
+
+    - name: 在 ARM64 模拟环境中编译 (Build on ARM64 via QEMU)
+      uses: uraimo/run-on-arch-action@v2
+      with:
+        arch: aarch64
+        distro: debian12
+        githubToken: ${{ github.token }}
+        run: |
+          apt-get update
+          apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
+                             libqt5network5 libqt5gui5 libqt5widgets5 \
+                             libqt5svg5 libqt5svg5-dev
+          mkdir build && cd build
+          PRO_FILE=$(find .. -maxdepth 2 -name "*.pro" | head -n 1)
+          qmake $PRO_FILE
+          make -j$(nproc)
+
+    - name: 上传构建产物 (Upload Artifact)
+      uses: actions/upload-artifact@v4
+      with:
+        name: PVEClient-Linux-arm64
+        path: bin/PVEClient
+        retention-days: 7
+
+  build-windows-x64:
+    name: Build Windows x86_64
+    runs-on: windows-latest
+    steps:
+    - name: 检出源码 (Checkout)
+      uses: actions/checkout@v4
+
+    - name: 配置 Qt 编译环境 (Install Qt)
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_mingw81'
+
+    - name: 编译项目 (Build)
+      shell: cmd
+      run: |
+        mkdir build_win
+        cd build_win
+        qmake "CONFIG+=release" ..\PVEClient.pro
+        mingw32-make -j4
+
+    - name: 收集 Windows 依赖 DLL (windeployqt)
+      shell: cmd
+      run: |
+        windeployqt --no-translations bin\PVEClient.exe
+
+    - name: 上传构建产物 (Upload Artifact)
+      uses: actions/upload-artifact@v4
+      with:
+        name: PVEClient-Windows-x64
+        path: bin/
         retention-days: 7
