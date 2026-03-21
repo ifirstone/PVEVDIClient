@@ -85,27 +85,24 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     }
 
     // USB 驱动器重定向
+    // 【安全核心】严禁映射 /media、/run/media、/mnt 等系统级挂载点！
+    // 因为瘦客户端通常以 root 运行，这些路径下会包含系统盘本身，
+    // 一旦映射给远端虚拟机，用户可通过 Windows 资源管理器直接删除瘦客户端的系统文件导致崩溃！
+    // 正确方案：创建一个专用的安全空白隔离目录，仅将该目录映射给 RDP 会话。
+    // 用户插入的 USB 设备需要手动挂载到此目录下才会在远端可见。
     if (info.enableUSBDrive) {
 #ifdef Q_OS_WIN
         // Windows 环境下不支持 freerdp /drive 简易映射，忽略
 #else
-        // 缩窄权限范围限制在当前用户专有的 U 盘挂载点下，防范越权映射整个 /media（可能会导致越权访问并删除本机根目录文件）
-        QString userStr = qgetenv("USER");
-        if (userStr.isEmpty()) userStr = qgetenv("USERNAME");
-        
-        QDir userRunMedia("/run/media/" + userStr);
-        QDir userMedia("/media/" + userStr);
-        
-        if (!userStr.isEmpty() && userRunMedia.exists()) {
-            args << "/drive:usb," + userRunMedia.absolutePath();
-        } else if (!userStr.isEmpty() && userMedia.exists()) {
-            args << "/drive:usb," + userMedia.absolutePath();
-        } else {
-            // 退火防御策略：如果找不到专属挂载点，退而挂载当前登录用户的安全下载包路径，杜绝挂载全局 /tmp 或 /media
-            QString safeDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-            if (safeDir.isEmpty()) safeDir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-            args << "/drive:usb," + safeDir;
+        // 创建专用的安全沙箱共享目录（每次连接时确保存在）
+        QString safeShareDir = "/tmp/pxvdi_usb_share";
+        QDir shareDir(safeShareDir);
+        if (!shareDir.exists()) {
+            shareDir.mkpath(".");
         }
+        args << "/drive:usb," + safeShareDir;
+        qDebug() << "USB 重定向安全沙箱目录:" << safeShareDir
+                 << "(请将 USB 设备挂载到此目录下以在远端可见)";
 #endif
     }
 
