@@ -84,7 +84,7 @@ void WorkspaceView::setupUI()
     topLayout->addStretch();
 
     // 调试按钮
-    QPushButton *btnDebug = new QPushButton("🐛 运行日志");
+    QPushButton *btnDebug = new QPushButton("运行日志");
     btnDebug->setCursor(Qt::PointingHandCursor);
     btnDebug->setStyleSheet(
         "QPushButton { color: white; font-size: 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 14px; margin-right: 15px; }"
@@ -96,7 +96,7 @@ void WorkspaceView::setupUI()
     });
 
     // 右侧：用户注销按钮
-    QPushButton *btnLogout = new QPushButton("⏏ 注销");
+    QPushButton *btnLogout = new QPushButton("注销");
     btnLogout->setCursor(Qt::PointingHandCursor);
     btnLogout->setStyleSheet(
         "QPushButton { color: white; font-size: 14px; background: transparent; border: none; }"
@@ -190,7 +190,7 @@ void WorkspaceView::setupUI()
 void WorkspaceView::onAuthenticated(const QString &username)
 {
     m_currentUsername = username;
-    m_lblUser->setText(QString("👤 %1").arg(username));
+    m_lblUser->setText(username);
     onRefreshVMs();
 }
 

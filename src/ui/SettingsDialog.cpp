@@ -179,7 +179,7 @@ void SettingsDialog::setupUI()
     mainLayout->setContentsMargins(20, 18, 20, 18);
 
     // ===== 服务器配置区 =====
-    QGroupBox *serverGroup = new QGroupBox("🖥  PVE 服务器");
+    QGroupBox *serverGroup = new QGroupBox("PVE 服务器");
     QVBoxLayout *serverLayout = new QVBoxLayout(serverGroup);
     serverLayout->setSpacing(10);
     serverLayout->setContentsMargins(16, 16, 16, 14);
@@ -225,7 +225,7 @@ void SettingsDialog::setupUI()
     mainLayout->addWidget(serverGroup);
 
     // ===== 外观设置区 =====
-    QGroupBox *appearGroup = new QGroupBox("🎨  外观");
+    QGroupBox *appearGroup = new QGroupBox("外观");
     QFormLayout *appearLayout = new QFormLayout(appearGroup);
     appearLayout->setLabelAlignment(Qt::AlignRight);
     appearLayout->setSpacing(10);
@@ -250,7 +250,7 @@ void SettingsDialog::setupUI()
     mainLayout->addWidget(appearGroup);
 
     // ===== 行为设置区 =====
-    QGroupBox *behaviorGroup = new QGroupBox("⚙  行为");
+    QGroupBox *behaviorGroup = new QGroupBox("行为");
     QVBoxLayout *behaviorLayout = new QVBoxLayout(behaviorGroup);
     behaviorLayout->setSpacing(8);
     behaviorLayout->setContentsMargins(16, 16, 16, 14);
@@ -265,7 +265,7 @@ void SettingsDialog::setupUI()
     m_chkAutoConnect->setStyleSheet(CHECK_STYLE);
     behaviorLayout->addWidget(m_chkAutoConnect);
 
-    m_chkDebugMode = new QCheckBox("🔧 调试模式（显示连接过程中的详细错误信息）");
+    m_chkDebugMode = new QCheckBox("调试模式（显示连接过程中的详细错误信息）");
     m_chkDebugMode->setChecked(m_config->debugMode());
     m_chkDebugMode->setStyleSheet(CHECK_STYLE);
     behaviorLayout->addWidget(m_chkDebugMode);
@@ -273,17 +273,17 @@ void SettingsDialog::setupUI()
     mainLayout->addWidget(behaviorGroup);
 
     // ===== RDP 外设重定向区 =====
-    QGroupBox *rdpGroup = new QGroupBox("🔌  RDP 外设重定向");
+    QGroupBox *rdpGroup = new QGroupBox("RDP 外设重定向");
     QVBoxLayout *rdpLayout = new QVBoxLayout(rdpGroup);
     rdpLayout->setSpacing(8);
     rdpLayout->setContentsMargins(16, 16, 16, 14);
 
-    m_chkRdpSound = new QCheckBox("🔊 声音输出");
-    m_chkRdpMic   = new QCheckBox("🎤 麦克风输入");
-    m_chkRdpClipboard = new QCheckBox("📋 剪贴板共享");
-    m_chkRdpUsb   = new QCheckBox("💾 USB 驱动器");
-    m_chkRdpSmartcard = new QCheckBox("🎞 智能卡 / U-Key");
-    m_chkRdpPrinter   = new QCheckBox("🖨 打印机");
+    m_chkRdpSound = new QCheckBox("声音输出");
+    m_chkRdpMic   = new QCheckBox("麦克风输入");
+    m_chkRdpClipboard = new QCheckBox("剪贴板共享");
+    m_chkRdpUsb   = new QCheckBox("USB 驱动器");
+    m_chkRdpSmartcard = new QCheckBox("智能卡 / U-Key");
+    m_chkRdpPrinter   = new QCheckBox("打印机");
 
     m_chkRdpSound->setChecked(m_config->rdpSound());
     m_chkRdpMic->setChecked(m_config->rdpMicrophone());
