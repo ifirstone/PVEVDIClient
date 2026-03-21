@@ -83,7 +83,8 @@ SettingsDialog::SettingsDialog(ConfigManager *config, QWidget *parent)
     , m_config(config)
 {
     setWindowTitle("客户端设置");
-    setMinimumWidth(460);   // 最小宽，高度自适应内容
+    setMinimumWidth(780);   // 双栏布局，增加宽度以降低高度
+    setMinimumHeight(520);  // 确保高度在一个合理的范围内
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
     applyDialogStyle();
     setupUI();
@@ -175,8 +176,20 @@ void SettingsDialog::applyDialogStyle()
 void SettingsDialog::setupUI()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(14);
-    mainLayout->setContentsMargins(20, 18, 20, 18);
+    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(20, 18, 20, 12);
+
+    // 中间主要内容区：左右分栏
+    QHBoxLayout *contentLayout = new QHBoxLayout();
+    contentLayout->setSpacing(20);
+
+    // 左侧栏：基础连接与通用设置
+    QVBoxLayout *leftColumn = new QVBoxLayout();
+    leftColumn->setSpacing(14);
+
+    // 右侧栏：RDP 外设与性能微调
+    QVBoxLayout *rightColumn = new QVBoxLayout();
+    rightColumn->setSpacing(14);
 
     // ===== 服务器配置区 =====
     QGroupBox *serverGroup = new QGroupBox("PVE 服务器");
@@ -222,7 +235,7 @@ void SettingsDialog::setupUI()
     portRow->addWidget(m_btnTest);
     serverLayout->addLayout(portRow);
 
-    mainLayout->addWidget(serverGroup);
+    leftColumn->addWidget(serverGroup);
 
     // ===== 外观设置区 =====
     QGroupBox *appearGroup = new QGroupBox("外观");
@@ -247,7 +260,7 @@ void SettingsDialog::setupUI()
     if (langIdx >= 0) m_comboLanguage->setCurrentIndex(langIdx);
     appearLayout->addRow("语言:", m_comboLanguage);
 
-    mainLayout->addWidget(appearGroup);
+    leftColumn->addWidget(appearGroup);
 
     // ===== 行为设置区 =====
     QGroupBox *behaviorGroup = new QGroupBox("行为");
@@ -270,7 +283,9 @@ void SettingsDialog::setupUI()
     m_chkDebugMode->setStyleSheet(CHECK_STYLE);
     behaviorLayout->addWidget(m_chkDebugMode);
 
-    mainLayout->addWidget(behaviorGroup);
+    leftColumn->addWidget(behaviorGroup);
+
+    contentLayout->addLayout(leftColumn, 1);
 
     // ===== RDP 外设重定向区 =====
     QGroupBox *rdpGroup = new QGroupBox("RDP 外设重定向");
@@ -298,7 +313,7 @@ void SettingsDialog::setupUI()
         rdpLayout->addWidget(chk);
     }
 
-    mainLayout->addWidget(rdpGroup);
+    rightColumn->addWidget(rdpGroup);
 
     // ===== FreeRDP 高级设置区 =====
     QGroupBox *freerdpGroup = new QGroupBox("FreeRDP 设置");
@@ -352,9 +367,12 @@ void SettingsDialog::setupUI()
     freerdpLayout->addWidget(m_comboRdpNetwork, 2, 1);
     freerdpLayout->addWidget(m_chkRdpUsermode, 2, 2, 1, 2);
 
-    mainLayout->addWidget(freerdpGroup);
+    rightColumn->addWidget(freerdpGroup);
+    rightColumn->addStretch(); // 右侧如果项少，底部留白
 
-    mainLayout->addStretch();
+    contentLayout->addLayout(rightColumn, 1);
+    mainLayout->addLayout(contentLayout);
+    mainLayout->addSpacing(12);
 
 
     // ===== 底部按钮 =====
