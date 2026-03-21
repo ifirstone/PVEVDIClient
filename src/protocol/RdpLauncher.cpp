@@ -132,7 +132,9 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     } else {
         // FreeRDP 2.x 向下兼容参数
         args << "/cert-ignore"; // 2.x 旧版经典忽略证书格式
-        args << "-sec-nla";     // 2.x 中用减号语法显式关闭 NLA 以便顺利弹出 Windows 登录窗口
+        args << "-sec-nla";     // 2.x 中用显式关闭 NLA 以便顺利弹出 Windows 登录窗口
+        // 关键修复：Debian 12 使用了严格的 OpenSSL 3.0，导致 Windows RDP 默认自签名证书或旧加密套件被强行阻断 (Error 104 Connection reset)
+        args << "/tls-seclevel:0";
     }
 
     // 压缩与色彩优化降低卡顿
