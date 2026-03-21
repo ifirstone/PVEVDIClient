@@ -87,20 +87,24 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // USB 驱动器重定向
     if (info.enableUSBDrive) {
 #ifdef Q_OS_WIN
-        // Windows: 不支持 /drive 方式，跳过
+        // Windows 环境下不支持 freerdp /drive 简易映射，忽略
 #else
-        QDir runMedia("/run/media");
-        QDir media("/media");
-        QDir mnt("/mnt");
-        if (runMedia.exists()) {
-            args << "/drive:usb,/run/media";
-        } else if (media.exists()) {
-            args << "/drive:usb,/media";
-        } else if (mnt.exists()) {
-            args << "/drive:usb,/mnt";
+        // 缩窄权限范围限制在当前用户专有的 U 盘挂载点下，防范越权映射整个 /media（可能会导致越权访问并删除本机根目录文件）
+        QString userStr = qgetenv("USER");
+        if (userStr.isEmpty()) userStr = qgetenv("USERNAME");
+        
+        QDir userRunMedia("/run/media/" + userStr);
+        QDir userMedia("/media/" + userStr);
+        
+        if (!userStr.isEmpty() && userRunMedia.exists()) {
+            args << "/drive:usb," + userRunMedia.absolutePath();
+        } else if (!userStr.isEmpty() && userMedia.exists()) {
+            args << "/drive:usb," + userMedia.absolutePath();
         } else {
-            // 如果系统过于精简连上述挂载点都没有，必须指定一个存在的文件夹，否则 freerdp 会因为目录不存在报错终止连接。
-            args << "/drive:usb,/tmp";
+            // 退火防御策略：如果找不到专属挂载点，退而挂载当前登录用户的安全下载包路径，杜绝挂载全局 /tmp 或 /media
+            QString safeDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+            if (safeDir.isEmpty()) safeDir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+            args << "/drive:usb," + safeDir;
         }
 #endif
     }
