@@ -131,8 +131,8 @@ void VmCard::setupUI()
     auto makeCombo = [](const QString &prefix) -> QComboBox* { return new QComboBox(); };
 
     m_cmbProtocol = makeCombo("");
-    m_cmbProtocol->addItem("RDP");
     m_cmbProtocol->addItem("SPICE");
+    m_cmbProtocol->addItem("RDP");
     m_cmbProtocol->setFixedWidth(68);
     connect(m_cmbProtocol, &QComboBox::currentTextChanged, this, &VmCard::onProtocolChanged);
 

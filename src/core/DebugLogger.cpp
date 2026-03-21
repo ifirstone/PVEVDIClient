@@ -9,6 +9,8 @@ DebugLogger& DebugLogger::instance() {
 
 DebugLogger::DebugLogger(QWidget *parent) : QDialog(parent) {
     setWindowTitle("PVEClient 实时调试与交互控制台");
+    // 强制此窗口在全屏模式或 Linux WM 下悬浮于其他窗口之上
+    setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
     resize(800, 500);
     
     // 设置深色调的黑客风格代码窗
