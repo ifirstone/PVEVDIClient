@@ -41,9 +41,10 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
         args << QString("/u:%1").arg(info.username);
     }
     
-    if (!info.password.isEmpty()) {
-        args << QString("/p:%1").arg(info.password);
-    }
+    // 为防止 xfreerdp 因为没拿到 /p 参数而在看不见的后台终端中挂起死锁等用户输入，
+    // 我们强制下发 /p: (即使为空)，以此支持 Windows 的免密直接登录
+    args << QString("/p:%1").arg(info.password);
+    
     if (!info.domain.isEmpty()) {
         args << QString("/d:%1").arg(info.domain);
     }

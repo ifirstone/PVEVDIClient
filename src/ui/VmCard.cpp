@@ -8,6 +8,10 @@
 #include <QIntValidator>
 #include <QDebug>
 #include <QPixmap>
+#include <QDialog>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QDialogButtonBox>
 
 VmCard::VmCard(const QJsonObject &vmInfo,
                ConfigManager *configManager,
@@ -33,7 +37,8 @@ VmCard::VmCard(const QJsonObject &vmInfo,
 
 void VmCard::setupUI()
 {
-    QString name   = m_vmInfo["name"].toString("VM-%1").arg(m_vmInfo["vmid"].toInt());
+    QString name   = m_vmInfo["name"].toString();
+    if (name.isEmpty()) name = QString("VM-%1").arg(m_vmInfo["vmid"].toInt());
     QString status = m_vmInfo["status"].toString();
     int     vmId   = m_vmInfo["vmid"].toInt();
     QString node   = m_vmInfo["node"].toString();
@@ -353,13 +358,44 @@ void VmCard::onConnectionError(const ConnectionInfo &info, const QString &error)
     }
 }
 
-// 直接用 m_rdpIp + 端口 + ConfigManager 外设设置 发起 RDP 连接（不弹窗）
 void VmCard::doRdpConnect()
 {
     if (m_rdpIp.isEmpty()) return;
 
     int rdpPort = m_editRdpPort->text().toInt();
     if (rdpPort <= 0) rdpPort = 3389;
+
+    QString rdpUser = "administrator";
+    QString rdpPass = "";
+
+    // 弹出快速身份验证框
+    QDialog authDialog(this);
+    authDialog.setWindowTitle("RDP 认证 (" + m_vmInfo["name"].toString() + ")");
+    authDialog.setMinimumWidth(300);
+    QVBoxLayout *dlgLayout = new QVBoxLayout(&authDialog);
+
+    QFormLayout *form = new QFormLayout();
+    QLineEdit *editUser = new QLineEdit(rdpUser);
+    editUser->setPlaceholderText("默认: administrator");
+    QLineEdit *editPass = new QLineEdit(rdpPass);
+    editPass->setEchoMode(QLineEdit::Password);
+    editPass->setPlaceholderText("可留空");
+    
+    form->addRow("用户名 (Username):", editUser);
+    form->addRow("密码 (Password):", editPass);
+    dlgLayout->addLayout(form);
+
+    QDialogButtonBox *btnBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    connect(btnBox, &QDialogButtonBox::accepted, &authDialog, &QDialog::accept);
+    connect(btnBox, &QDialogButtonBox::rejected, &authDialog, &QDialog::reject);
+    dlgLayout->addWidget(btnBox);
+
+    if (authDialog.exec() != QDialog::Accepted) {
+        // 用户取消连接，恢复按钮状态
+        m_btnConnect->setText("▶  连接桌面");
+        m_btnConnect->setEnabled(true);
+        return;
+    }
 
     ConnectionInfo info;
     info.id         = ConnectionInfo::generateId();
@@ -371,6 +407,9 @@ void VmCard::doRdpConnect()
     info.protocol   = Protocol::RDP;
     info.rdpHost    = m_rdpIp;
     info.rdpPort    = rdpPort;
+    // 注入刚拿到的账号密码令牌
+    info.username   = editUser->text();
+    info.password   = editPass->text();
     // 从全局设置读取外设重定向选项
     info.enableSound      = m_configManager->rdpSound();
     info.enableMicrophone = m_configManager->rdpMicrophone();
