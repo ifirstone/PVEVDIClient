@@ -168,9 +168,9 @@ void WorkspaceView::setupUI()
         }
     }
 
-    QLabel *lblClientInfo = new QLabel(QString("主机名: %1\t本地地址: %2").arg(QHostInfo::localHostName(), localIp));
+    QLabel *lblClientInfo = new QLabel(QString("主机名: %1\t本机IP: %2").arg(QHostInfo::localHostName(), localIp));
     QLabel *lblVersion = new QLabel("开源技术驱动 v3.0");
-    m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
+    m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
 
     statusBarLayout->addWidget(lblClientInfo);
     statusBarLayout->addStretch();
@@ -182,7 +182,7 @@ void WorkspaceView::setupUI()
 
     m_timer = new QTimer(this);
     connect(m_timer, &QTimer::timeout, this, [this]() {
-        if (m_lblDateTime) m_lblDateTime->setText(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
+        if (m_lblDateTime) m_lblDateTime->setText(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
     });
     m_timer->start(1000);
 }

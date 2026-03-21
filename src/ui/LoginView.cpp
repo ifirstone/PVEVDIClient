@@ -221,7 +221,7 @@ void LoginView::setupUI()
     bottomBarLayout->setContentsMargins(0, 16, 0, 0);
 
     // 设置 - 蓝色
-    QPushButton *btnSettings = new QPushButton("\u2699 设置");
+    QPushButton *btnSettings = new QPushButton("设置");
     btnSettings->setCursor(Qt::PointingHandCursor);
     btnSettings->setStyleSheet(
         "QPushButton { color: white; background: #3b82f6; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
@@ -230,7 +230,7 @@ void LoginView::setupUI()
     );
 
     // 关机 - 红色
-    QPushButton *btnShutdown = new QPushButton("\u23fb 关机");
+    QPushButton *btnShutdown = new QPushButton("关机");
     btnShutdown->setCursor(Qt::PointingHandCursor);
     btnShutdown->setStyleSheet(
         "QPushButton { color: white; background: #ef4444; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
@@ -239,7 +239,7 @@ void LoginView::setupUI()
     );
 
     // 重启 - 橘黄色
-    QPushButton *btnReboot = new QPushButton("\u21ba 重启");
+    QPushButton *btnReboot = new QPushButton("重启");
     btnReboot->setCursor(Qt::PointingHandCursor);
     btnReboot->setStyleSheet(
         "QPushButton { color: white; background: #f59e0b; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
@@ -296,9 +296,9 @@ void LoginView::setupUI()
         }
     }
 
-    QLabel *lblClientInfo = new QLabel(QString("主机名: %1\t本地地址: %2").arg(QHostInfo::localHostName(), localIp));
+    QLabel *lblClientInfo = new QLabel(QString("主机名: %1\t本机IP: %2").arg(QHostInfo::localHostName(), localIp));
     QLabel *lblVersion = new QLabel("开源版 v1.0.0 PVE Thin Client");
-    m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
+    m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
 
     statusBarLayout->addWidget(lblClientInfo);
     statusBarLayout->addStretch();
@@ -488,7 +488,7 @@ void LoginView::onReboot()
 void LoginView::updateTime()
 {
     if (m_lblDateTime) {
-        m_lblDateTime->setText(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
+        m_lblDateTime->setText(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
     }
 }
 
