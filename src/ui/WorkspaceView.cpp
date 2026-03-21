@@ -72,13 +72,16 @@ void WorkspaceView::setupUI()
     QLabel *lblIcon = new QLabel("PXVDI开源版"); // 占位logo文字
     lblIcon->setStyleSheet("color: white; font-size: 20px; font-weight: bold; letter-spacing: 1px;");
 
+    m_lblUser = new QLabel("");
+    m_lblUser->setStyleSheet("color: rgba(255,255,255,0.7); font-size: 14px; margin-left: 15px;");
+
     topLayout->addWidget(lblIcon);
+    topLayout->addWidget(m_lblUser);
     topLayout->addStretch();
 
     // 右侧：用户注销按钮
     QPushButton *btnLogout = new QPushButton();
-    btnLogout->setIcon(QIcon(":/icons/user_icon.svg")); // 假设有图标，没有也不影响
-    btnLogout->setText("  👤 注销");
+    btnLogout->setText("⏏ 注销");
     btnLogout->setCursor(Qt::PointingHandCursor);
     btnLogout->setStyleSheet(
         "QPushButton { color: white; font-size: 14px; background: transparent; border: none; }"

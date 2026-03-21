@@ -154,16 +154,13 @@ void LoginView::setupUI()
     connect(m_editPassword, &QLineEdit::returnPressed, this, &LoginView::onLoginClicked);
     cardLayout->addWidget(m_editPassword);
 
-    // ---- 自动登录与辅助链接 ----
+    // ---- 自动登录 ----
     QHBoxLayout *loginOptionsLayout = new QHBoxLayout();
     m_chkAutoLogin = new QCheckBox("自动登录");
     m_chkAutoLogin->setStyleSheet("color: #3a5080; font-size: 13px;");
     
-    QLabel *lblForgot = new QLabel("<a href=\"#\" style=\"color:#8a99b5; text-decoration:none;\">忘记账号/注册</a>");
-    
     loginOptionsLayout->addWidget(m_chkAutoLogin);
     loginOptionsLayout->addStretch();
-    loginOptionsLayout->addWidget(lblForgot);
     
     cardLayout->addLayout(loginOptionsLayout);
 
@@ -202,45 +199,36 @@ void LoginView::setupUI()
     connect(m_btnLogin, &QPushButton::clicked, this, &LoginView::onLoginClicked);
     cardLayout->addWidget(m_btnLogin);
 
-    // ---- 底部操作栏（设置/关机/重启），彩色圆角按钮 ----
+    // ---- 底部操作栏（设置/关机/重启），采用实心色彩填充风格 ----
     QHBoxLayout *bottomBarLayout = new QHBoxLayout();
-    bottomBarLayout->setSpacing(8);
-    bottomBarLayout->setContentsMargins(0, 14, 0, 0);
+    bottomBarLayout->setSpacing(12);
+    bottomBarLayout->setContentsMargins(0, 16, 0, 0);
 
     // 设置 - 蓝色
-    QPushButton *btnSettings = new QPushButton("\u2699  \u8bbe\u7f6e");
+    QPushButton *btnSettings = new QPushButton("\u2699 设置");
     btnSettings->setCursor(Qt::PointingHandCursor);
     btnSettings->setStyleSheet(
-        "QPushButton {"
-        "  color: #1a56db; background: rgba(59,113,202,0.10);"
-        "  border: 1.5px solid rgba(59,113,202,0.55); border-radius: 8px;"
-        "  font-size: 12px; padding: 5px 14px;"
-        "}"
-        "QPushButton:hover { background: rgba(59,113,202,0.22); border-color: #3b71ca; }"
+        "QPushButton { color: white; background: #3b82f6; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
+        "QPushButton:hover { background: #60a5fa; }"
+        "QPushButton:pressed { background: #2563eb; }"
     );
 
     // 关机 - 红色
-    QPushButton *btnShutdown = new QPushButton("\u23fb  \u5173\u673a");
+    QPushButton *btnShutdown = new QPushButton("\u23fb 关机");
     btnShutdown->setCursor(Qt::PointingHandCursor);
     btnShutdown->setStyleSheet(
-        "QPushButton {"
-        "  color: #c0392b; background: rgba(192,57,43,0.10);"
-        "  border: 1.5px solid rgba(192,57,43,0.55); border-radius: 8px;"
-        "  font-size: 12px; padding: 5px 14px;"
-        "}"
-        "QPushButton:hover { background: rgba(192,57,43,0.22); border-color: #c0392b; }"
+        "QPushButton { color: white; background: #ef4444; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
+        "QPushButton:hover { background: #f87171; }"
+        "QPushButton:pressed { background: #dc2626; }"
     );
 
-    // 重启 - 绿色
-    QPushButton *btnReboot = new QPushButton("\u21ba  \u91cd\u542f");
+    // 重启 - 橘黄色
+    QPushButton *btnReboot = new QPushButton("\u21ba 重启");
     btnReboot->setCursor(Qt::PointingHandCursor);
     btnReboot->setStyleSheet(
-        "QPushButton {"
-        "  color: #1a7a40; background: rgba(33,145,80,0.10);"
-        "  border: 1.5px solid rgba(33,145,80,0.55); border-radius: 8px;"
-        "  font-size: 12px; padding: 5px 14px;"
-        "}"
-        "QPushButton:hover { background: rgba(33,145,80,0.22); border-color: #1a7a40; }"
+        "QPushButton { color: white; background: #f59e0b; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
+        "QPushButton:hover { background: #fcd34d; }"
+        "QPushButton:pressed { background: #d97706; }"
     );
 
     connect(btnSettings, &QPushButton::clicked, this, &LoginView::settingsRequested);
