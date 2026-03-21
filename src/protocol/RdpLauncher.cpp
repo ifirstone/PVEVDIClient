@@ -183,9 +183,9 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
 
     // 编解码降阶保护（救命参数：针对 ARM 盒子没硬件 VAAPI 的情况）
     if (info.rdpCodec == "软件解码") {
-        // 禁用 H264，退回到位图/RFX 模式，虽然肉眼可见刷新，但 CPU 不会爆表
+        // 禁用 H264，强制退回到 RFX 模式，虽然肉眼可见刷新，但 CPU 不会爆表
         if (isFreeRDP3) {
-            args << "/gfx-h264:-";
+            args << "/gfx:rfx"; 
         } else {
             args << "-gfx-h264";
         }
