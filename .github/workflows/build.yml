@@ -49,7 +49,7 @@ jobs:
       uses: uraimo/run-on-arch-action@v2
       with:
         arch: aarch64
-        distro: debian12
+        distro: ubuntu22.04
         githubToken: ${{ github.token }}
         run: |
           apt-get update
