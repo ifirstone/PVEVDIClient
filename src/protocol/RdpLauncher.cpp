@@ -192,16 +192,20 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     } else if (info.rdpCodec == "h264:444") {
         if (isFreeRDP3) args << "/gfx:avc444";
         else args << "/gfx-h264:avc444";
+    } else {
+        // 默认模式 (H264 高性能模式)
+        if (isFreeRDP3) args << "/gfx:progressive";
+        else args << "+gfx-progressive";
     }
 
     if (isFreeRDP3) {
         // FreeRDP 3.x 全新语法 (冒号替代旧版的加号或短划线)
         args << "/multitouch" << "/gestures";
-        args << "/cache:codec:rfx" << "/gfx:progressive" << "/cache:bitmap";
+        args << "/cache:codec:rfx" << "/cache:bitmap";
     } else {
         // FreeRDP 2.x 向下兼容语法
         args << "+multitouch" << "+gestures";
-        args << "/codec-cache:rfx" << "+gfx-progressive" << "+bitmap-cache";
+        args << "/codec-cache:rfx" << "+bitmap-cache";
     }
 
     if (info.rdpUsermode) {
