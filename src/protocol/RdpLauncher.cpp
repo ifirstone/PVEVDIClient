@@ -18,6 +18,16 @@ RdpLauncher::RdpLauncher(QObject *parent)
 bool RdpLauncher::launch(const ConnectionInfo &info)
 {
     QString program = xfreerdpPath();
+    
+    // 如果设置中强制指定了版本，则覆盖自动检测的结果
+    if (info.rdpVersion == 2) {
+        program = QStandardPaths::findExecutable("xfreerdp");
+        if (program.isEmpty()) program = "/usr/bin/xfreerdp";
+    } else if (info.rdpVersion == 3) {
+        program = QStandardPaths::findExecutable("xfreerdp3");
+        if (program.isEmpty()) program = "/usr/bin/xfreerdp3";
+    }
+
     QStringList args = buildArguments(info);
 
     if (program.isEmpty()) {
@@ -136,7 +146,7 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
 
     // 判断 FreeRDP 大版本分支以使用不同兼容参数
     QString exePath = xfreerdpPath();
-    bool isFreeRDP3 = exePath.contains("xfreerdp3");
+    bool isFreeRDP3 = exePath.contains("xfreerdp3") || info.rdpVersion == 3;
 
     if (isFreeRDP3) {
         // FreeRDP 3.x 专属安全与证书参数
@@ -157,11 +167,32 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     args << "/gdi:hw";
     
     // 网络与连接容灾
-    args << "/network:auto";                 // 自动适应网络带宽调整帧率
+    args << "/network:" + info.rdpNetwork;   // 用户自定义或自动网络速率
     args << "+auto-reconnect" << "/auto-reconnect-max-retries:3"; // 闪断自动重连
     
     // 关闭终端乱刷日志提升 I/O 性能
     args << "/log-level:OFF";
+
+    // 色深与缩放
+    args << QString("/bpp:%1").arg(info.rdpColorDepth);
+    if (!info.rdpScale.isEmpty() && info.rdpScale != "100%") {
+        QString scaleVal = info.rdpScale;
+        scaleVal.remove("%");
+        args << "/scale:" + scaleVal;
+    }
+
+    // 编解码降阶保护（救命参数：针对 ARM 盒子没硬件 VAAPI 的情况）
+    if (info.rdpCodec == "软件解码") {
+        // 禁用 H264，退回到位图/RFX 模式，虽然肉眼可见刷新，但 CPU 不会爆表
+        if (isFreeRDP3) {
+            args << "/gfx-h264:-";
+        } else {
+            args << "-gfx-h264";
+        }
+    } else if (info.rdpCodec == "h264:444") {
+        if (isFreeRDP3) args << "/gfx:avc444";
+        else args << "/gfx-h264:avc444";
+    }
 
     if (isFreeRDP3) {
         // FreeRDP 3.x 全新语法 (冒号替代旧版的加号或短划线)
@@ -173,11 +204,10 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
         args << "/codec-cache:rfx" << "+gfx-progressive" << "+bitmap-cache";
     }
 
-    // // 在 ARM 等低配盒子上，强制 32 位色宽和 v2 级压缩会造成 CPU 软解严重卡顿 (一帧一帧显现)。
-    // // 竞品使用了 /bpp:32 /compression-level:2 配合 /gfx:RFX 硬件解码。
-    // // 如果我们的盒子不支持 RFX 硬解，使用这些参数会极其卡顿。为了安全起见，我们仅使用基础的 GDI:hw 和 cache，
-    // // 或者我们可以把它们加上，让用户自己在连接设置里选择是否开启（当前留空使用智能默认值）。
-    // // args << "/bpp:32" << "/compression-level:2";
+    if (info.rdpUsermode) {
+        args << "/pcb:usermode"; // 某些场景下的特定用户模式标识
+    }
+
     if (!info.extraArgs.isEmpty()) {
         args << info.extraArgs.split(" ", Qt::SkipEmptyParts);
     }

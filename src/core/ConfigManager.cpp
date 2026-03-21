@@ -85,6 +85,17 @@ bool ConfigManager::load(const QString &filePath)
         m_debugMode = settings["debug_mode"].toBool(false);
     }
 
+    // 解析 RDP 高级配置
+    if (root.contains("rdp_advanced")) {
+        QJsonObject rdpAdv = root["rdp_advanced"].toObject();
+        m_rdpVersion = rdpAdv["version"].toInt(3);
+        m_rdpCodec = rdpAdv["codec"].toString("h264:420");
+        m_rdpColorDepth = rdpAdv["color_depth"].toInt(32);
+        m_rdpNetwork = rdpAdv["network"].toString("auto");
+        m_rdpScale = rdpAdv["scale"].toString("100%");
+        m_rdpUsermode = rdpAdv["usermode"].toBool(false);
+    }
+
     qDebug() << "配置加载成功，共" << m_connections.size() << "个连接";
     return true;
 }
@@ -129,6 +140,16 @@ bool ConfigManager::save(const QString &filePath)
     settings["auto_connect_id"] = m_autoConnectId;
     settings["debug_mode"] = m_debugMode;
     root["settings"] = settings;
+
+    // RDP 高级配置
+    QJsonObject rdpAdv;
+    rdpAdv["version"] = m_rdpVersion;
+    rdpAdv["codec"] = m_rdpCodec;
+    rdpAdv["color_depth"] = m_rdpColorDepth;
+    rdpAdv["network"] = m_rdpNetwork;
+    rdpAdv["scale"] = m_rdpScale;
+    rdpAdv["usermode"] = m_rdpUsermode;
+    root["rdp_advanced"] = rdpAdv;
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly)) {
@@ -258,5 +279,25 @@ void ConfigManager::setRdpRedirection(bool sound, bool mic, bool clipboard,
     m_rdpUsbDrive   = usb;
     m_rdpSmartcard  = smartcard;
     m_rdpPrinter    = printer;
+    save();
+}
+
+// RDP 高级性能与编解码设置
+int ConfigManager::rdpVersion() const { return m_rdpVersion; }
+QString ConfigManager::rdpCodec() const { return m_rdpCodec; }
+int ConfigManager::rdpColorDepth() const { return m_rdpColorDepth; }
+QString ConfigManager::rdpNetwork() const { return m_rdpNetwork; }
+QString ConfigManager::rdpScale() const { return m_rdpScale; }
+bool ConfigManager::rdpUsermode() const { return m_rdpUsermode; }
+
+void ConfigManager::setRdpAdvanced(int version, const QString &codec, int colorDepth,
+                                   const QString &network, const QString &scale, bool usermode)
+{
+    m_rdpVersion = version;
+    m_rdpCodec = codec;
+    m_rdpColorDepth = colorDepth;
+    m_rdpNetwork = network;
+    m_rdpScale = scale;
+    m_rdpUsermode = usermode;
     save();
 }

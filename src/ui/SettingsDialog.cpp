@@ -299,7 +299,63 @@ void SettingsDialog::setupUI()
     }
 
     mainLayout->addWidget(rdpGroup);
+
+    // ===== FreeRDP 高级设置区 =====
+    QGroupBox *freerdpGroup = new QGroupBox("FreeRDP 设置");
+    QGridLayout *freerdpLayout = new QGridLayout(freerdpGroup);
+    freerdpLayout->setSpacing(12);
+    freerdpLayout->setContentsMargins(16, 16, 16, 14);
+
+    // 行 1
+    m_comboRdpVersion = new QComboBox();
+    m_comboRdpVersion->addItems({"2", "3", "Auto"});
+    m_comboRdpVersion->setStyleSheet(COMBO_STYLE);
+    m_comboRdpVersion->setCurrentText(m_config->rdpVersion() == 3 ? "3" : (m_config->rdpVersion() == 2 ? "2" : "Auto"));
+
+    m_comboRdpCodec = new QComboBox();
+    m_comboRdpCodec->addItems({"软件解码", "h264:420", "h264:444"});
+    m_comboRdpCodec->setStyleSheet(COMBO_STYLE);
+    m_comboRdpCodec->setCurrentText(m_config->rdpCodec());
+
+    freerdpLayout->addWidget(new QLabel("Freerdp 版本"), 0, 0);
+    freerdpLayout->addWidget(m_comboRdpVersion, 0, 1);
+    freerdpLayout->addWidget(new QLabel("解码"), 0, 2);
+    freerdpLayout->addWidget(m_comboRdpCodec, 0, 3);
+
+    // 行 2
+    m_comboRdpColorDepth = new QComboBox();
+    m_comboRdpColorDepth->addItems({"16", "24", "32"});
+    m_comboRdpColorDepth->setStyleSheet(COMBO_STYLE);
+    m_comboRdpColorDepth->setCurrentText(QString::number(m_config->rdpColorDepth()));
+
+    m_comboRdpScale = new QComboBox();
+    m_comboRdpScale->addItems({"100%", "125%", "150%", "180%", "200%"});
+    m_comboRdpScale->setStyleSheet(COMBO_STYLE);
+    m_comboRdpScale->setCurrentText(m_config->rdpScale());
+
+    freerdpLayout->addWidget(new QLabel("色深"), 1, 0);
+    freerdpLayout->addWidget(m_comboRdpColorDepth, 1, 1);
+    freerdpLayout->addWidget(new QLabel("缩放"), 1, 2);
+    freerdpLayout->addWidget(m_comboRdpScale, 1, 3);
+
+    // 行 3
+    m_comboRdpNetwork = new QComboBox();
+    m_comboRdpNetwork->addItems({"auto", "lan", "broadband", "modem"});
+    m_comboRdpNetwork->setStyleSheet(COMBO_STYLE);
+    m_comboRdpNetwork->setCurrentText(m_config->rdpNetwork());
+
+    m_chkRdpUsermode = new QCheckBox("usermode");
+    m_chkRdpUsermode->setStyleSheet(CHECK_STYLE);
+    m_chkRdpUsermode->setChecked(m_config->rdpUsermode());
+
+    freerdpLayout->addWidget(new QLabel("网络速率"), 2, 0);
+    freerdpLayout->addWidget(m_comboRdpNetwork, 2, 1);
+    freerdpLayout->addWidget(m_chkRdpUsermode, 2, 2, 1, 2);
+
+    mainLayout->addWidget(freerdpGroup);
+
     mainLayout->addStretch();
+
 
     // ===== 底部按钮 =====
     QHBoxLayout *btnLayout = new QHBoxLayout();
@@ -396,6 +452,16 @@ void SettingsDialog::onAccepted()
         m_chkRdpUsb->isChecked(),
         m_chkRdpSmartcard->isChecked(),
         m_chkRdpPrinter->isChecked()
+    );
+
+    int version = m_comboRdpVersion->currentText() == "Auto" ? 0 : m_comboRdpVersion->currentText().toInt();
+    m_config->setRdpAdvanced(
+        version,
+        m_comboRdpCodec->currentText(),
+        m_comboRdpColorDepth->currentText().toInt(),
+        m_comboRdpNetwork->currentText(),
+        m_comboRdpScale->currentText(),
+        m_chkRdpUsermode->isChecked()
     );
     m_config->save();
 

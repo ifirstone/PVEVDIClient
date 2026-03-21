@@ -42,6 +42,14 @@ struct ConnectionInfo {
     // 额外自定义参数
     QString extraArgs;
 
+    // RDP 高级性能与编解码设置 (从全局 Config 继承或独立设置)
+    int rdpVersion = 0; // 0: Auto, 2: v2, 3: v3
+    QString rdpCodec = "h264:420";
+    int rdpColorDepth = 32;
+    QString rdpNetwork = "auto";
+    QString rdpScale = "100%";
+    bool rdpUsermode = false;
+
     // 生成新的连接 ID
     static QString generateId() {
         return QUuid::createUuid().toString(QUuid::WithoutBraces);

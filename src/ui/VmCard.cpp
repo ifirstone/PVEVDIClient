@@ -417,6 +417,15 @@ void VmCard::doRdpConnect()
     info.enableUSBDrive   = m_configManager->rdpUsbDrive();
     info.enableSmartcard  = m_configManager->rdpSmartcard();
     info.enablePrinter    = m_configManager->rdpPrinter();
+    
+    // 注入 RDP 高级性能与编解码设置
+    info.rdpVersion    = m_configManager->rdpVersion();
+    info.rdpCodec      = m_configManager->rdpCodec();
+    info.rdpColorDepth = m_configManager->rdpColorDepth();
+    info.rdpNetwork    = m_configManager->rdpNetwork();
+    info.rdpScale      = m_configManager->rdpScale();
+    info.rdpUsermode   = m_configManager->rdpUsermode();
+
     info.resolution       = "fullscreen";
 
     m_connectionManager->connectTo(info);

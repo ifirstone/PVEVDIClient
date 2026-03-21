@@ -49,6 +49,14 @@ private:
     QCheckBox *m_chkRdpUsb;
     QCheckBox *m_chkRdpSmartcard;
     QCheckBox *m_chkRdpPrinter;
+
+    // RDP 高级设置
+    QComboBox *m_comboRdpVersion;
+    QComboBox *m_comboRdpCodec;
+    QComboBox *m_comboRdpColorDepth;
+    QComboBox *m_comboRdpNetwork;
+    QComboBox *m_comboRdpScale;
+    QCheckBox *m_chkRdpUsermode;
 };
 
 #endif // SETTINGSDIALOG_H

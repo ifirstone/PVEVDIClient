@@ -61,6 +61,16 @@ public:
     void setRdpRedirection(bool sound, bool mic, bool clipboard,
                            bool usb, bool smartcard, bool printer);
 
+    // RDP 高级性能与编解码设置
+    int rdpVersion() const;
+    QString rdpCodec() const;
+    int rdpColorDepth() const;
+    QString rdpNetwork() const;
+    QString rdpScale() const;
+    bool rdpUsermode() const;
+    void setRdpAdvanced(int version, const QString &codec, int colorDepth,
+                        const QString &network, const QString &scale, bool usermode);
+
     // 配置文件路径
     QString configFilePath() const;
 
@@ -99,6 +109,14 @@ private:
     bool m_rdpUsbDrive   = true;
     bool m_rdpSmartcard  = false;
     bool m_rdpPrinter    = false;
+
+    // RDP 高级性能与编解码设置
+    int m_rdpVersion = 3;
+    QString m_rdpCodec = "h264:420";
+    int m_rdpColorDepth = 32;
+    QString m_rdpNetwork = "auto";
+    QString m_rdpScale = "100%";
+    bool m_rdpUsermode = false;
 };
 
 #endif // CONFIGMANAGER_H

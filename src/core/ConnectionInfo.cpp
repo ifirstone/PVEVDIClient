@@ -31,6 +31,14 @@ QJsonObject ConnectionInfo::toJson() const
 
     obj["extra_args"] = extraArgs;
 
+    // RDP 高级设置项
+    obj["rdp_version"] = rdpVersion;
+    obj["rdp_codec"] = rdpCodec;
+    obj["rdp_color_depth"] = rdpColorDepth;
+    obj["rdp_network"] = rdpNetwork;
+    obj["rdp_scale"] = rdpScale;
+    obj["rdp_usermode"] = rdpUsermode;
+
     return obj;
 }
 
@@ -60,6 +68,14 @@ ConnectionInfo ConnectionInfo::fromJson(const QJsonObject &json)
     info.enablePrinter = json["enable_printer"].toBool(false);
 
     info.extraArgs = json["extra_args"].toString();
+
+    // RDP 高级设置项
+    info.rdpVersion = json["rdp_version"].toInt(0); // 0 为默认 Auto
+    info.rdpCodec = json["rdp_codec"].toString("h264:420");
+    info.rdpColorDepth = json["rdp_color_depth"].toInt(32);
+    info.rdpNetwork = json["rdp_network"].toString("auto");
+    info.rdpScale = json["rdp_scale"].toString("100%");
+    info.rdpUsermode = json["rdp_usermode"].toBool(false);
 
     return info;
 }
