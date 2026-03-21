@@ -33,6 +33,7 @@ private:
     void setupConnections();
     void loadStyleSheet();
     void updateStatusBar(const QString &message);
+    void applyKioskMode();
 
     // 核心业务组件
     ConfigManager     *m_configManager;

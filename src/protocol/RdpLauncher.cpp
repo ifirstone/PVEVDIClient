@@ -1,6 +1,7 @@
 #include "RdpLauncher.h"
 #include <QDebug>
 #include <QFile>
+#include <QDir>
 #include <QStandardPaths>
 #include <QMessageBox>
 
@@ -94,7 +95,19 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
 #ifdef Q_OS_WIN
         // Windows: 不支持 /drive 方式，跳过
 #else
-        args << "/drive:usb,/run/media";
+        QDir runMedia("/run/media");
+        QDir media("/media");
+        QDir mnt("/mnt");
+        if (runMedia.exists()) {
+            args << "/drive:usb,/run/media";
+        } else if (media.exists()) {
+            args << "/drive:usb,/media";
+        } else if (mnt.exists()) {
+            args << "/drive:usb,/mnt";
+        } else {
+            // 如果系统过于精简连上述挂载点都没有，必须指定一个存在的文件夹，否则 freerdp 会因为目录不存在报错终止连接。
+            args << "/drive:usb,/tmp";
+        }
 #endif
     }
 

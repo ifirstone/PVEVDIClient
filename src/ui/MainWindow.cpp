@@ -31,8 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     loadStyleSheet();
 
     setWindowTitle("PVE 云桌面客户端");
-    resize(1280, 720);
-    // showFullScreen() 可在正式部署时开启
+    applyKioskMode();
 }
 
 MainWindow::~MainWindow()
@@ -99,5 +98,17 @@ void MainWindow::onLogout()
 void MainWindow::onShowSettings()
 {
     SettingsDialog dialog(m_configManager, this);
-    dialog.exec();
+    if (dialog.exec() == QDialog::Accepted) {
+        applyKioskMode();
+    }
+}
+
+void MainWindow::applyKioskMode()
+{
+    if (m_configManager->kioskMode()) {
+        showFullScreen();
+    } else {
+        showNormal();
+        resize(1280, 720); // 恢复正常大小时的大小
+    }
 }
