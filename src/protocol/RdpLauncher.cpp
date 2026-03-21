@@ -253,11 +253,12 @@ void RdpLauncher::syncUsbMounts()
     }
     
     // 第二步：使用 lsblk 获取所有块设备信息（JSON 格式）
-    // 输出字段：NAME, MOUNTPOINT, HOTPLUG, TYPE
+    // 输出字段：NAME, MOUNTPOINT, HOTPLUG, TYPE, LABEL
     // HOTPLUG=1 表示可移动设备（USB 等）
     // TYPE=part 表示分区
+    // LABEL 是文件系统卷标（即 U 盘取名）
     QProcess lsblk;
-    lsblk.start("lsblk", QStringList() << "-J" << "-o" << "NAME,MOUNTPOINT,HOTPLUG,TYPE");
+    lsblk.start("lsblk", QStringList() << "-J" << "-o" << "NAME,MOUNTPOINT,HOTPLUG,TYPE,LABEL");
     if (!lsblk.waitForFinished(3000)) {
         qDebug() << "USB 探测器: lsblk 执行超时";
         return;
@@ -284,6 +285,7 @@ void RdpLauncher::syncUsbMounts()
         QString mountpoint = dev.value("mountpoint").toString();
         QString type = dev.value("type").toString();
         QString name = dev.value("name").toString();
+        QString label = dev.value("label").toString();
         
         // 只处理可移动设备的分区，且必须有有效的挂载点
         if (isHotplug && type == "part" && !mountpoint.isEmpty() && mountpoint != "/") {
@@ -298,11 +300,25 @@ void RdpLauncher::syncUsbMounts()
                 return;
             }
             
-            // 创建软链接: /tmp/pxvdi_usb_share/<设备名> -> <实际挂载点>
-            QString linkPath = sandboxDir + "/" + name;
+            // 优先使用 U 盘卷标名称，如果没有卷标则使用挂载点目录名，最后使用设备名
+            QString displayName = label;
+            if (displayName.isEmpty()) {
+                // 取挂载点的最后一级目录名作为显示名
+                displayName = QFileInfo(mountpoint).fileName();
+            }
+            if (displayName.isEmpty()) {
+                displayName = name;
+            }
+            
+            // 创建软链接: /tmp/pxvdi_usb_share/<卷标名> -> <实际挂载点>
+            QString linkPath = sandboxDir + "/" + displayName;
+            // 如果同名链接已存在（比如两个同名U盘），附加设备名区分
+            if (QFile::exists(linkPath)) {
+                linkPath = sandboxDir + "/" + displayName + "_" + name;
+            }
             if (!QFile::exists(linkPath)) {
                 QFile::link(mountpoint, linkPath);
-                qDebug() << "USB 探测器: 链接 USB 设备" << name << "->" << mountpoint;
+                qDebug() << "USB 探测器: 链接 USB 设备" << displayName << "->" << mountpoint;
                 linkedCount++;
             }
         }

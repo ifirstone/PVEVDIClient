@@ -361,7 +361,8 @@ void LoginView::onAuthSuccess(const QString &username)
         m_configManager->setPvePassword(m_editPassword->text());
     }
     
-    m_editPassword->clear();
+    // 注意：不再清空密码框，因为注销后可能还需要显示
+    // m_editPassword->clear(); 
     m_configManager->save();
 
     // 发射信号通知 MainWindow 切换到工作台
@@ -472,4 +473,19 @@ void LoginView::updateTime()
     if (m_lblDateTime) {
         m_lblDateTime->setText(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
     }
+}
+
+void LoginView::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    
+    // 每次视图重新显示时（包括注销后切换回来），回填已记住的密码
+    if (m_configManager->rememberPassword() && !m_configManager->pvePassword().isEmpty()) {
+        if (m_editPassword->text().isEmpty()) {
+            m_editPassword->setText(m_configManager->pvePassword());
+        }
+    }
+    
+    // 同步 checkbox 状态
+    m_chkAutoLogin->setChecked(m_configManager->rememberPassword());
 }

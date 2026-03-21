@@ -36,6 +36,8 @@ private slots:
 protected:
     // 绘制全屏壁纸背景
     void paintEvent(QPaintEvent *event) override;
+    // 注销后重新显示时回填密码
+    void showEvent(QShowEvent *event) override;
 
 private:
     void setupUI();
