@@ -121,11 +121,19 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
         args << "/printer";
     }
 
-    // 证书处理：FreeRDP 3 建议用 /cert:tofu, 兼容旧版用 /cert:ignore
-    args << "/cert:tofu" << "/cert:ignore";
+    // 判断 FreeRDP 大版本分支以使用不同兼容参数
+    QString exePath = xfreerdpPath();
+    bool isFreeRDP3 = exePath.contains("xfreerdp3");
 
-    // 强制使用 TLS 安全层（绕过 NLA），这样即使密码为空/错误也能先弹出远程画面
-    args << "/sec:tls";
+    if (isFreeRDP3) {
+        // FreeRDP 3.x 专属安全与证书参数
+        args << "/cert:tofu" << "/cert:ignore";
+        args << "/sec:tls"; // 强制用 TLS 绕过最新版的验证检测
+    } else {
+        // FreeRDP 2.x 向下兼容参数
+        args << "/cert-ignore"; // 2.x 旧版经典忽略证书格式
+        args << "-sec-nla";     // 2.x 中用减号语法显式关闭 NLA 以便顺利弹出 Windows 登录窗口
+    }
 
     // 压缩与色彩优化降低卡顿
     args << "/compression-level:2" << "/bpp:32" << "+fonts";
