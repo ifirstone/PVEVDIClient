@@ -3,6 +3,7 @@
 ../obj/ConfigManager.o
 ../obj/ProcessRunner.o
 ../obj/ConnectionManager.o
+../obj/DebugLogger.o
 ../obj/PveApiClient.o
 ../obj/PveAuthManager.o
 ../obj/RdpLauncher.o
@@ -20,6 +21,7 @@
 ../obj/moc_ConfigManager.o
 ../obj/moc_ProcessRunner.o
 ../obj/moc_ConnectionManager.o
+../obj/moc_DebugLogger.o
 ../obj/moc_PveApiClient.o
 ../obj/moc_PveAuthManager.o
 ../obj/moc_AbstractLauncher.o

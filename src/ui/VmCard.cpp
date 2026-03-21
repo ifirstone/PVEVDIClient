@@ -8,10 +8,6 @@
 #include <QIntValidator>
 #include <QDebug>
 #include <QPixmap>
-#include <QDialog>
-#include <QFormLayout>
-#include <QLineEdit>
-#include <QDialogButtonBox>
 
 VmCard::VmCard(const QJsonObject &vmInfo,
                ConfigManager *configManager,
@@ -139,7 +135,6 @@ void VmCard::setupUI()
     m_cmbProtocol->addItem("SPICE");
     m_cmbProtocol->addItem("RDP");
     m_cmbProtocol->setFixedWidth(68);
-    connect(m_cmbProtocol, &QComboBox::currentTextChanged, this, &VmCard::onProtocolChanged);
 
     m_cmbPower = makeCombo("");
     m_cmbPower->addItem("电源管理");
@@ -154,11 +149,22 @@ void VmCard::setupUI()
     });
 
     // 隐藏的 RDP 端口列
-    QLabel *lblPortLabel = new QLabel("端口");
-    lblPortLabel->hide();
-    lblPortLabel->setObjectName("lblRdpPort");
+    QLabel *lblPortLabel = new QLabel("RDP 端口: ");
     m_editRdpPort = new QLineEdit("3389");
-    m_editRdpPort->hide();
+    m_editRdpPort->setFixedWidth(60); // 避免输入框过长破坏布局
+    
+    QWidget *portRowWidget = new QWidget(this);
+    QHBoxLayout *prL = new QHBoxLayout(portRowWidget);
+    prL->setContentsMargins(0, 0, 0, 0);
+    prL->addWidget(lblPortLabel);
+    prL->addWidget(m_editRdpPort);
+    prL->addStretch();
+    
+    // 通过 Lambda 直接绑定，防止 findChild 原地失效
+    connect(m_cmbProtocol, &QComboBox::currentTextChanged, this, [portRowWidget](const QString &protocol){
+        portRowWidget->setVisible(protocol == "RDP");
+    });
+    portRowWidget->setVisible(m_cmbProtocol->currentText() == "RDP");
 
     // 如果是运行状态且有 qemu-agent，启动时异步获取 IP
     if (status == "running") {
@@ -194,17 +200,9 @@ void VmCard::setupUI()
     bottomActRow->addWidget(m_btnConnect);
 
     layout->addLayout(bottomActRow);
-    
-    // 隐藏行容器（适配 Protocol 切换）
-    QWidget *portRowWidget = new QWidget();
-    portRowWidget->setObjectName("portRowWidget");
-    QHBoxLayout *prL = new QHBoxLayout(portRowWidget);
-    prL->setContentsMargins(0,0,0,0);
-    prL->addWidget(lblPortLabel);
-    prL->addWidget(m_editRdpPort);
-    prL->addStretch();
+
+    // 将 RDP 端口栏挂载到底部布局的最下方
     layout->addWidget(portRowWidget);
-    portRowWidget->hide();
 }
 
 // ========== 工具方法 ==========
@@ -293,8 +291,9 @@ void VmCard::onIpReceived(const QStringList &ips)
         }
     } else {
         m_rdpIp.clear();
-        m_lblIp->setText("• IP: 未\u83b7取\uff08\u672a\u5b89\u88c5 agent\uff09");
+        m_lblIp->setText("• IP: 未获取到主机IP");
         m_lblIp->setStyleSheet("font-size: 11px; color: #c0392b;");
+        m_lblIp->show();
         if (wasWaiting && m_cmbProtocol->currentText() == "RDP") {
             QMessageBox::warning(this, "\u63d0\u793a",
                 "\u672a\u83b7\u53d6\u5230 IP\uff0c\u65e0\u6cd5\u8fde\u63a5 RDP\u3002\n"
@@ -312,10 +311,41 @@ void VmCard::onPowerAction(const QString &action)
     QString confirmMsg;
     if (action == "stop")  confirmMsg = QString("确定强制关闭 %1 吗？").arg(name);
     if (action == "reset") confirmMsg = QString("确定重启 %1 吗？").arg(name);
+    if (action == "shutdown") confirmMsg = QString("确定安全关机 %1 吗？").arg(name);
 
     if (!confirmMsg.isEmpty()) {
-        if (QMessageBox::question(this, "确认操作", confirmMsg,
-                QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) {
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle("确认操作");
+        msgBox.setText(confirmMsg);
+        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        msgBox.setDefaultButton(QMessageBox::No);
+        msgBox.setStyleSheet(
+            "QMessageBox { background-color: #ffffff; border-radius: 8px; }"
+            "QLabel { color: #1a2a4a; font-size: 14px; font-weight: bold; min-height: 40px; }"
+        );
+        
+        QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
+        QPushButton *noBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
+        if (yesBtn) {
+            yesBtn->setText("确定");
+            yesBtn->setCursor(Qt::PointingHandCursor);
+            yesBtn->setStyleSheet(
+                "QPushButton { background-color: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+                "QPushButton:hover { background-color: #f87171; }"
+                "QPushButton:pressed { background-color: #dc2626; }"
+            );
+        }
+        if (noBtn) {
+            noBtn->setText("取消");
+            noBtn->setCursor(Qt::PointingHandCursor);
+            noBtn->setStyleSheet(
+                "QPushButton { background-color: #10b981; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+                "QPushButton:hover { background-color: #34d399; }"
+                "QPushButton:pressed { background-color: #059669; }"
+            );
+        }
+        
+        if (msgBox.exec() != QMessageBox::Yes) {
             return;
         }
     }
@@ -365,38 +395,6 @@ void VmCard::doRdpConnect()
     int rdpPort = m_editRdpPort->text().toInt();
     if (rdpPort <= 0) rdpPort = 3389;
 
-    QString rdpUser = "administrator";
-    QString rdpPass = "";
-
-    // 弹出快速身份验证框
-    QDialog authDialog(this);
-    authDialog.setWindowTitle("RDP 认证 (" + m_vmInfo["name"].toString() + ")");
-    authDialog.setMinimumWidth(300);
-    QVBoxLayout *dlgLayout = new QVBoxLayout(&authDialog);
-
-    QFormLayout *form = new QFormLayout();
-    QLineEdit *editUser = new QLineEdit(rdpUser);
-    editUser->setPlaceholderText("默认: administrator");
-    QLineEdit *editPass = new QLineEdit(rdpPass);
-    editPass->setEchoMode(QLineEdit::Password);
-    editPass->setPlaceholderText("可留空");
-    
-    form->addRow("用户名 (Username):", editUser);
-    form->addRow("密码 (Password):", editPass);
-    dlgLayout->addLayout(form);
-
-    QDialogButtonBox *btnBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    connect(btnBox, &QDialogButtonBox::accepted, &authDialog, &QDialog::accept);
-    connect(btnBox, &QDialogButtonBox::rejected, &authDialog, &QDialog::reject);
-    dlgLayout->addWidget(btnBox);
-
-    if (authDialog.exec() != QDialog::Accepted) {
-        // 用户取消连接，恢复按钮状态
-        m_btnConnect->setText("▶  连接桌面");
-        m_btnConnect->setEnabled(true);
-        return;
-    }
-
     ConnectionInfo info;
     info.id         = ConnectionInfo::generateId();
     info.name       = m_vmInfo["name"].toString();
@@ -407,9 +405,9 @@ void VmCard::doRdpConnect()
     info.protocol   = Protocol::RDP;
     info.rdpHost    = m_rdpIp;
     info.rdpPort    = rdpPort;
-    // 注入刚拿到的账号密码令牌
-    info.username   = editUser->text();
-    info.password   = editPass->text();
+    // 静默写入默认账号与空密码，利用空参数绕过控制台死锁，将交互完全丢给 Windows 锁屏处理
+    info.username   = "administrator";
+    info.password   = "";
     // 从全局设置读取外设重定向选项
     info.enableSound      = m_configManager->rdpSound();
     info.enableMicrophone = m_configManager->rdpMicrophone();
@@ -422,17 +420,4 @@ void VmCard::doRdpConnect()
     m_connectionManager->connectTo(info);
 }
 
-// 切换协议时显隐 RDP 端口输入框
-void VmCard::onProtocolChanged(const QString &protocol)
-{
-    bool isRdp = (protocol == "RDP");
-    QWidget *portRowWidget = findChild<QWidget*>("portRowWidget");
-    if (portRowWidget) portRowWidget->setVisible(isRdp);
-    
-    // IP 标签仅在 RDP 模式时才显示（并且有值时才显示）
-    if (isRdp && !m_lblIp->text().isEmpty()) {
-        m_lblIp->show();
-    } else {
-        m_lblIp->hide();
-    }
-}
+

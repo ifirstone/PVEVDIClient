@@ -13,6 +13,7 @@
 #include <QDebug>
 #include <QNetworkInterface>
 #include <QHostAddress>
+#include <QHostInfo>
 #include <QDateTime>
 #include <QTimer>
 #include "../core/DebugLogger.h"
@@ -70,8 +71,8 @@ void WorkspaceView::setupUI()
     topLayout->setContentsMargins(36, 0, 36, 0);
 
     // 左侧：Logo
-    QLabel *lblIcon = new QLabel("PXVDI开源版"); // 占位logo文字
-    lblIcon->setStyleSheet("color: white; font-size: 20px; font-weight: bold; letter-spacing: 1px;");
+    QLabel *lblIcon = new QLabel("云桌面客户端 Cloud Desktop Client");
+    lblIcon->setStyleSheet("color: white; font-size: 20px; font-weight: bold; letter-spacing: 1px; background: transparent;");
 
     m_lblUser = new QLabel("");
     m_lblUser->setStyleSheet("color: rgba(255,255,255,0.7); font-size: 14px; margin-left: 15px;");
@@ -157,7 +158,7 @@ void WorkspaceView::setupUI()
         }
     }
 
-    QLabel *lblClientInfo = new QLabel(QString("客户端名: PVEClient开源版    本地地址: %1").arg(localIp));
+    QLabel *lblClientInfo = new QLabel(QString("主机名: %1\t本地地址: %2").arg(QHostInfo::localHostName(), localIp));
     QLabel *lblVersion = new QLabel("开源技术驱动 v3.0");
     m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
 

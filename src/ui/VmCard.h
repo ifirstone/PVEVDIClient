@@ -34,7 +34,6 @@ public:
 
 private slots:
     void onConnectClicked();
-    void onProtocolChanged(const QString &protocol);  // 切换协议时显隐 RDP 端口输入框
     void onPowerAction(const QString &action);
     void onConnectionStarted(const ConnectionInfo &info);
     void onConnectionEnded(const ConnectionInfo &info, int exitCode);

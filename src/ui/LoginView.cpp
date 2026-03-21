@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QNetworkInterface>
 #include <QHostAddress>
+#include <QHostInfo>
 #include "../core/DebugLogger.h"
 
 LoginView::LoginView(ConfigManager *configManager, PveAuthManager *authManager, QWidget *parent)
@@ -205,19 +206,6 @@ void LoginView::setupUI()
     bottomBarLayout->setSpacing(12);
     bottomBarLayout->setContentsMargins(0, 16, 0, 0);
 
-    // 调试日志 - 灰色
-    QPushButton *btnDebug = new QPushButton("🐛 运行日志");
-    btnDebug->setCursor(Qt::PointingHandCursor);
-    btnDebug->setStyleSheet(
-        "QPushButton { color: white; background: #64748b; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
-        "QPushButton:hover { background: #94a3b8; }"
-        "QPushButton:pressed { background: #475569; }"
-    );
-    connect(btnDebug, &QPushButton::clicked, this, [](){
-        DebugLogger::instance().show();
-        DebugLogger::instance().raise();
-    });
-
     // 设置 - 蓝色
     QPushButton *btnSettings = new QPushButton("\u2699 设置");
     btnSettings->setCursor(Qt::PointingHandCursor);
@@ -249,11 +237,9 @@ void LoginView::setupUI()
     connect(btnShutdown, &QPushButton::clicked, this, &LoginView::onShutdown);
     connect(btnReboot,   &QPushButton::clicked, this, &LoginView::onReboot);
 
-    bottomBarLayout->addWidget(btnDebug);
     bottomBarLayout->addWidget(btnSettings);
     bottomBarLayout->addStretch();
     bottomBarLayout->addWidget(btnShutdown);
-    bottomBarLayout->addSpacing(4);
     bottomBarLayout->addWidget(btnReboot);
 
     cardLayout->addLayout(bottomBarLayout);
@@ -289,7 +275,7 @@ void LoginView::setupUI()
         }
     }
 
-    QLabel *lblClientInfo = new QLabel(QString("客户端名: PVEClient\t本地地址: %1").arg(localIp));
+    QLabel *lblClientInfo = new QLabel(QString("主机名: %1\t本地地址: %2").arg(QHostInfo::localHostName(), localIp));
     QLabel *lblVersion = new QLabel("开源版 v1.0.0 PVE Thin Client");
     m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
 
@@ -380,10 +366,38 @@ void LoginView::onAuthFailed(const QString &error)
 
 void LoginView::onShutdown()
 {
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "关机确认", "确定要关机吗？",
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-    if (reply == QMessageBox::Yes) {
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("关机确认");
+    msgBox.setText("确定要关机吗？");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+    msgBox.setStyleSheet(
+        "QMessageBox { background-color: #ffffff; border-radius: 8px; }"
+        "QLabel { color: #1a2a4a; font-size: 14px; font-weight: bold; min-height: 40px; }"
+    );
+    
+    QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
+    QPushButton *noBtn  = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
+    if (yesBtn) {
+        yesBtn->setText("确定");
+        yesBtn->setCursor(Qt::PointingHandCursor);
+        yesBtn->setStyleSheet(
+            "QPushButton { background-color: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+            "QPushButton:hover { background-color: #f87171; }"
+            "QPushButton:pressed { background-color: #dc2626; }"
+        );
+    }
+    if (noBtn) {
+        noBtn->setText("取消");
+        noBtn->setCursor(Qt::PointingHandCursor);
+        noBtn->setStyleSheet(
+            "QPushButton { background-color: #10b981; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+            "QPushButton:hover { background-color: #34d399; }"
+            "QPushButton:pressed { background-color: #059669; }"
+        );
+    }
+
+    if (msgBox.exec() == QMessageBox::Yes) {
 #ifdef Q_OS_LINUX
         // 使用现代 systemctl 命令，配合 polkit，普通桌面用户可直接执行
         QProcess::startDetached("systemctl", QStringList() << "poweroff");
@@ -396,10 +410,38 @@ void LoginView::onShutdown()
 
 void LoginView::onReboot()
 {
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this, "重启确认", "确定要重启吗？",
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-    if (reply == QMessageBox::Yes) {
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("重启确认");
+    msgBox.setText("确定要重启吗？");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+    msgBox.setStyleSheet(
+        "QMessageBox { background-color: #ffffff; border-radius: 8px; }"
+        "QLabel { color: #1a2a4a; font-size: 14px; font-weight: bold; min-height: 40px; }"
+    );
+    
+    QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
+    QPushButton *noBtn  = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
+    if (yesBtn) {
+        yesBtn->setText("确定");
+        yesBtn->setCursor(Qt::PointingHandCursor);
+        yesBtn->setStyleSheet(
+            "QPushButton { background-color: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+            "QPushButton:hover { background-color: #f87171; }"
+            "QPushButton:pressed { background-color: #dc2626; }"
+        );
+    }
+    if (noBtn) {
+        noBtn->setText("取消");
+        noBtn->setCursor(Qt::PointingHandCursor);
+        noBtn->setStyleSheet(
+            "QPushButton { background-color: #10b981; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+            "QPushButton:hover { background-color: #34d399; }"
+            "QPushButton:pressed { background-color: #059669; }"
+        );
+    }
+
+    if (msgBox.exec() == QMessageBox::Yes) {
 #ifdef Q_OS_LINUX
         // 使用现代 systemctl 命令，配合 polkit，普通桌面用户可直接执行
         QProcess::startDetached("systemctl", QStringList() << "reboot");
