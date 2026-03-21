@@ -153,7 +153,8 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // // 如果我们的盒子不支持 RFX 硬解，使用这些参数会极其卡顿。为了安全起见，我们仅使用基础的 GDI:hw 和 cache，
     // // 或者我们可以把它们加上，让用户自己在连接设置里选择是否开启（当前留空使用智能默认值）。
     // // args << "/bpp:32" << "/compression-level:2";
-        args << info.extraArgs.split(" ", QString::SkipEmptyParts);
+    if (!info.extraArgs.isEmpty()) {
+        args << info.extraArgs.split(" ", Qt::SkipEmptyParts);
     }
 
     return args;

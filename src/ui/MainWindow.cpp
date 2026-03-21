@@ -83,8 +83,12 @@ void MainWindow::loadStyleSheet()
 
 void MainWindow::onLoginSuccess(const QString &username, const QString &node)
 {
-    qDebug() << "主窗口：登录成功，跳转到工作台，用户:" << username;
+    Q_UNUSED(node);
+    
+    // 初始化工作台并传参
     m_workspaceView->onAuthenticated(username);
+    
+    // 切换到工作台页面 (索引1)
     m_stackedWidget->setCurrentIndex(1);
 }
 

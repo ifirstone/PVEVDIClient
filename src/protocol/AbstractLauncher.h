@@ -64,7 +64,7 @@ private slots:
                 errorMsg = QString("连接进程意外结束，退出码: %1").arg(exitCode);
             } else {
                 // 如果有多行错误，只取最后几行关键错误
-                QStringList lines = errorMsg.split('\n', QString::SkipEmptyParts);
+                QStringList lines = errorMsg.split('\n', Qt::SkipEmptyParts);
                 if (lines.size() > 3) {
                     errorMsg = lines.mid(lines.size() - 3).join('\n');
                 }

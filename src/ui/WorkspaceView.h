@@ -43,9 +43,6 @@ private slots:
 protected:
     void paintEvent(QPaintEvent *event) override;
 
-protected:
-    void paintEvent(QPaintEvent *event) override;
-
 private:
     void setupUI();
     void clearCards();
