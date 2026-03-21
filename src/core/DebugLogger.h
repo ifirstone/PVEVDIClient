@@ -14,7 +14,7 @@ public:
     static DebugLogger& instance();
 
 public slots:
-    void appendLog(QtMsgType type, const QString &msg);
+    void appendLog(int type, const QString &msg);
 
 private:
     explicit DebugLogger(QWidget *parent = nullptr);

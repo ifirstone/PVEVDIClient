@@ -33,7 +33,8 @@ DebugLogger::DebugLogger(QWidget *parent) : QDialog(parent) {
     layout->addLayout(btnLayout);
 }
 
-void DebugLogger::appendLog(QtMsgType type, const QString &msg) {
+void DebugLogger::appendLog(int typeInt, const QString &msg) {
+    QtMsgType type = static_cast<QtMsgType>(typeInt);
     QString timeStr = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
     QString typeStr;
     QString color;
@@ -53,7 +54,7 @@ void customMessageHandler(QtMsgType type, const QMessageLogContext &context, con
     QByteArray localMsg = msg.toLocal8Bit();
     fprintf(stderr, "%s\n", localMsg.constData());
     
-    // 跨线程安全地追加文本到单例界面的富文本框
+    // 跨线程安全地追加文本到单例界面的富文本框 (使用int避开枚举注册错误)
     QMetaObject::invokeMethod(&DebugLogger::instance(), "appendLog", Qt::QueuedConnection,
-                              Q_ARG(QtMsgType, type), Q_ARG(QString, msg));
+                              Q_ARG(int, static_cast<int>(type)), Q_ARG(QString, msg));
 }
