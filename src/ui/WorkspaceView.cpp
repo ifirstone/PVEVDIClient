@@ -27,7 +27,7 @@ WorkspaceView::WorkspaceView(ConfigManager *configManager,
     , m_apiClient(apiClient)
     , m_connectionManager(connectionManager)
 {
-    m_background = QPixmap(":/images/wallpaper.jpg");
+    m_background = QPixmap(":/icons/Wallpaper.jpg");
     setupUI();
 
     // 连接 API 信号
@@ -48,6 +48,8 @@ void WorkspaceView::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     if (!m_background.isNull()) {
         painter.drawPixmap(rect(), m_background.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
+        // 添加全局暗色半透明蒙版以弱化背景，凸显前景的虚拟机卡片
+        painter.fillRect(rect(), QColor(0, 0, 0, 100));
     } else {
         painter.fillRect(rect(), QColor(25, 30, 45));
     }
@@ -145,9 +147,17 @@ void WorkspaceView::setupUI()
 
     // ---- 底部系统状态栏 ----
     QHBoxLayout *statusBarLayout = new QHBoxLayout();
-    statusBarLayout->setContentsMargins(20, 6, 20, 6);
+    statusBarLayout->setContentsMargins(24, 10, 24, 10);
+    
     QWidget *statusBarWidget = new QWidget(this);
-    statusBarWidget->setStyleSheet("background-color: rgba(0,0,0,100); color: rgba(255,255,255,100); font-size: 11px;");
+    statusBarWidget->setStyleSheet(
+        "background-color: rgba(10, 15, 25, 180);"
+        "color: rgba(255, 255, 255, 200);"
+        "font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;"
+        "font-size: 13px;"
+        "font-weight: 500;"
+        "letter-spacing: 0.5px;"
+    );
     statusBarWidget->setLayout(statusBarLayout);
 
     QString localIp = "127.0.0.1";

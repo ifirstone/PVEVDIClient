@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none">
+  <!-- 显示器外框 -->
+  <rect x="15" y="12" width="90" height="58" rx="6" ry="6" 
+        fill="#e8f0fe" stroke="#3b71ca" stroke-width="3"/>
+  <!-- 显示器屏幕 -->
+  <rect x="21" y="18" width="78" height="46" rx="3" ry="3" fill="#3b71ca"/>
+  <!-- 云朵图形 (屏幕内) -->
+  <ellipse cx="60" cy="44" rx="16" ry="11" fill="white" opacity="0.95"/>
+  <ellipse cx="47" cy="47" rx="10" ry="8" fill="white" opacity="0.95"/>
+  <ellipse cx="73" cy="47" rx="10" ry="8" fill="white" opacity="0.95"/>
+  <ellipse cx="54" cy="38" rx="8" ry="7" fill="white" opacity="0.95"/>
+  <ellipse cx="66" cy="36" rx="9" ry="8" fill="white" opacity="0.95"/>
+  <!-- 云中的播放/连接三角 -->
+  <polygon points="56,40 56,50 65,45" fill="#3b71ca" opacity="0.7"/>
+  <!-- 显示器底座 -->
+  <rect x="48" y="70" width="24" height="6" rx="2" ry="2" fill="#3b71ca"/>
+  <rect x="40" y="76" width="40" height="4" rx="2" ry="2" fill="#c8d4e8"/>
+</svg>

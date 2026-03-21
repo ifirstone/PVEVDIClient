@@ -19,7 +19,7 @@ LoginView::LoginView(ConfigManager *configManager, PveAuthManager *authManager, 
     , m_authManager(authManager)
 {
     // 加载壁纸背景
-    m_background = QPixmap(":/images/wallpaper.jpg");
+    m_background = QPixmap(":/icons/Wallpaper.jpg");
     if (m_background.isNull()) {
         // 若没有壁纸图片，用纯色渐变兜底
         qDebug() << "未找到壁纸，将使用默认背景色";
@@ -104,10 +104,16 @@ void LoginView::setupUI()
     cardLayout->setContentsMargins(40, 40, 40, 36);
     cardLayout->setSpacing(16);
 
-    // ---- 标题区 ----
-    QLabel *lblIcon = new QLabel("🖥");
+    // ---- 标题图标区（跨平台 SVG 矢量图，不依赖 emoji 字体）----
+    QLabel *lblIcon = new QLabel();
+    QPixmap iconPix(":/icons/cloud_desktop.svg");
+    if (!iconPix.isNull()) {
+        lblIcon->setPixmap(iconPix.scaled(64, 54, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    } else {
+        lblIcon->setText("☁"); // 降级方案
+        lblIcon->setStyleSheet("font-size: 48px; color: #3b71ca;");
+    }
     lblIcon->setAlignment(Qt::AlignCenter);
-    lblIcon->setStyleSheet("font-size: 52px; color: #1e3a6e;");
     cardLayout->addWidget(lblIcon);
 
     QLabel *lblTitle = new QLabel("欢迎使用云桌面");
@@ -264,10 +270,17 @@ void LoginView::setupUI()
 
     // ---- 全屏底部系统状态指示栏 ----
     QHBoxLayout *statusBarLayout = new QHBoxLayout();
-    statusBarLayout->setContentsMargins(24, 6, 24, 6);
+    statusBarLayout->setContentsMargins(24, 10, 24, 10);
 
     QWidget *statusBarWidget = new QWidget(this);
-    statusBarWidget->setStyleSheet("background-color: rgba(10, 15, 25, 140); color: rgba(255, 255, 255, 140); font-size: 11px;");
+    statusBarWidget->setStyleSheet(
+        "background-color: rgba(10, 15, 25, 180);"
+        "color: rgba(255, 255, 255, 200);"
+        "font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;"
+        "font-size: 13px;"
+        "font-weight: 500;"
+        "letter-spacing: 0.5px;"
+    );
     statusBarWidget->setLayout(statusBarLayout);
 
     // 抓取本机内网 IP
@@ -395,6 +408,7 @@ void LoginView::onShutdown()
     QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
     QPushButton *noBtn  = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
     if (yesBtn) {
+        yesBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级勾选图标
         yesBtn->setText("确定");
         yesBtn->setCursor(Qt::PointingHandCursor);
         yesBtn->setStyleSheet(
@@ -404,6 +418,7 @@ void LoginView::onShutdown()
         );
     }
     if (noBtn) {
+        noBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级取消图标
         noBtn->setText("取消");
         noBtn->setCursor(Qt::PointingHandCursor);
         noBtn->setStyleSheet(
@@ -439,6 +454,7 @@ void LoginView::onReboot()
     QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
     QPushButton *noBtn  = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
     if (yesBtn) {
+        yesBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级勾选图标
         yesBtn->setText("确定");
         yesBtn->setCursor(Qt::PointingHandCursor);
         yesBtn->setStyleSheet(
@@ -448,6 +464,7 @@ void LoginView::onReboot()
         );
     }
     if (noBtn) {
+        noBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级取消图标
         noBtn->setText("取消");
         noBtn->setCursor(Qt::PointingHandCursor);
         noBtn->setStyleSheet(

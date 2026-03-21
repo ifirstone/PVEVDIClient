@@ -327,6 +327,7 @@ void VmCard::onPowerAction(const QString &action)
         QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
         QPushButton *noBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
         if (yesBtn) {
+            yesBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级勾选图标
             yesBtn->setText("确定");
             yesBtn->setCursor(Qt::PointingHandCursor);
             yesBtn->setStyleSheet(
@@ -336,6 +337,7 @@ void VmCard::onPowerAction(const QString &action)
             );
         }
         if (noBtn) {
+            noBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级取消图标
             noBtn->setText("取消");
             noBtn->setCursor(Qt::PointingHandCursor);
             noBtn->setStyleSheet(
