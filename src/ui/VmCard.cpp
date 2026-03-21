@@ -40,33 +40,33 @@ void VmCard::setupUI()
 
     // --- 卡片外观 ---
     setObjectName("vmCard");
-    setFixedWidth(320);
+    setFixedWidth(380);
     // QWidget 默认不绘制背景，必须设置此属性才能让 stylesheet 白色背景真正生效
     setAttribute(Qt::WA_StyledBackground, true);
     setStyleSheet(
-        // 卡片本身：白色圆角
+        // 卡片本身：白色圆角 + 柔和边框
         "#vmCard {"
         "  background-color: #ffffff;"
-        "  border-radius: 16px;"
-        "  border: 1px solid rgba(100,130,200,0.18);"
+        "  border-radius: 12px;"
+        "  border: 1px solid rgba(180,195,215,0.4);"
         "}"
         "#vmCard:hover {"
-        "  border-color: rgba(30,86,219,0.45);"
-        "  background-color: #f8faff;"
+        "  border-color: #3b71ca;"
+        "  background-color: #fcfdff;"
         "}"
-        // 内部子控件：背景透明，继承卡片白色
         "#vmCard QWidget { background: transparent; }"
         "#vmCard QLabel  { color: #1a2a4a; background: transparent; }"
         "#vmCard QFrame  { background: transparent; }"
-        // ComboBox 保持浅色
         "#vmCard QComboBox {"
-        "  background: #f0f4ff;"
-        "  color: #1a2a4a;"
+        "  background: #f8faff;"
+        "  color: #3a5080;"
         "  border: 1px solid #c8d4e8;"
         "  border-radius: 6px;"
         "  padding: 4px 8px;"
-        "  min-height: 28px;"
+        "  height: 28px;"
+        "  font-size: 12px;"
         "}"
+        "#vmCard QComboBox:hover { border-color: #3b71ca; }"
         "#vmCard QComboBox QAbstractItemView {"
         "  background: #ffffff;"
         "  color: #1a2a4a;"
@@ -124,83 +124,36 @@ void VmCard::setupUI()
     line->setStyleSheet("color: rgba(0,0,0,0.08);");
     layout->addWidget(line);
 
-    // --- 操作区：协议 下拉 + 电源 下拉 ---
-    QHBoxLayout *actRow1 = new QHBoxLayout();
-    actRow1->setSpacing(8);
+    // --- 合并后的底部操作排 ---
+    QHBoxLayout *bottomActRow = new QHBoxLayout();
+    bottomActRow->setSpacing(8);
 
-    auto makeCombo = [](const QString &prefix) -> QComboBox* {
-        QComboBox *cb = new QComboBox();
-        cb->setStyleSheet(
-            "QComboBox { border: 1px solid #c8d4e8; border-radius: 6px; padding: 4px 8px; font-size: 13px; color: #1a2a4a; background: #f5f8ff; }"
-            "QComboBox:hover { border-color: #3b71ca; }"
-        );
-        return cb;
-    };
+    auto makeCombo = [](const QString &prefix) -> QComboBox* { return new QComboBox(); };
 
-    QLabel *lblProtLabel = new QLabel("协议:");
-    lblProtLabel->setStyleSheet("font-size: 12px; color: #556a8a;");
-    m_cmbProtocol = makeCombo("协议");
-    m_cmbProtocol->addItem("SPICE");
+    m_cmbProtocol = makeCombo("");
     m_cmbProtocol->addItem("RDP");
-    m_cmbProtocol->setFixedWidth(100);
-    connect(m_cmbProtocol, &QComboBox::currentTextChanged,
-            this, &VmCard::onProtocolChanged);
+    m_cmbProtocol->addItem("SPICE");
+    m_cmbProtocol->setFixedWidth(68);
+    connect(m_cmbProtocol, &QComboBox::currentTextChanged, this, &VmCard::onProtocolChanged);
 
-    QLabel *lblPortLabel = new QLabel("RDP端口:");
-    lblPortLabel->setStyleSheet("font-size: 12px; color: #556a8a;");
-    m_editRdpPort = new QLineEdit("3389");
-    m_editRdpPort->setFixedWidth(70);
-    m_editRdpPort->setValidator(new QIntValidator(1, 65535, this));
-    m_editRdpPort->setStyleSheet(
-        "QLineEdit { border:1px solid #c8d4e8; border-radius:5px; padding:3px 6px;"
-        " font-size:12px; color:#1a2a4a; background:#f5f8ff; }"
-    );
-    // SPICE 模式下隐藏端口输入框
-    lblPortLabel->hide();
-    m_editRdpPort->hide();
-    // 沿用 ID 方便在 onProtocolChanged 中找到 label
-    lblPortLabel->setObjectName("lblRdpPort");
-
-    QLabel *lblPowerLabel = new QLabel("电源:");
-    lblPowerLabel->setStyleSheet("font-size: 12px; color: #556a8a;");
-    m_cmbPower = makeCombo("电源");
+    m_cmbPower = makeCombo("");
+    m_cmbPower->addItem("电源管理");
     m_cmbPower->addItem("开机");
-    m_cmbPower->addItem("关机 (ACPI)");
-    m_cmbPower->addItem("强制关机");
+    m_cmbPower->addItem("关机");
     m_cmbPower->addItem("重启");
-    m_cmbPower->setFixedWidth(110);
+    m_cmbPower->addItem("断电");
+    m_cmbPower->setFixedWidth(86);
     connect(m_cmbPower, QOverload<int>::of(&QComboBox::activated), this, [this](int idx) {
-        QStringList actions = {"start", "shutdown", "stop", "reset"};
-        if (idx < actions.size()) {
-            onPowerAction(actions[idx]);
-        }
+        QStringList actions = {"", "start", "shutdown", "reset", "stop"};
+        if (idx > 0 && idx < actions.size()) { onPowerAction(actions[idx]); }
     });
 
-    actRow1->addWidget(lblProtLabel);
-    actRow1->addWidget(m_cmbProtocol);
-    actRow1->addStretch();
-    actRow1->addWidget(lblPowerLabel);
-    actRow1->addWidget(m_cmbPower);
-    layout->addLayout(actRow1);
-
-    // --- RDP 端口行（单独占据一行） ---
-    QWidget *portRowWidget = new QWidget();
-    portRowWidget->setObjectName("portRowWidget");
-    portRowWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    QHBoxLayout *actRow2 = new QHBoxLayout(portRowWidget);
-    actRow2->setContentsMargins(0, 0, 0, 0); // 消除额外边距
-    actRow2->setSpacing(8);
-    
-    // 直接复用上方创建的 lblPortLabel
-    lblPortLabel->show(); 
-    actRow2->addWidget(lblPortLabel);
-    
-    m_editRdpPort->show();
-    actRow2->addWidget(m_editRdpPort);
-    actRow2->addStretch();
-    
-    layout->addWidget(portRowWidget);
-    portRowWidget->hide(); // 默认隐藏
+    // 隐藏的 RDP 端口列
+    QLabel *lblPortLabel = new QLabel("端口");
+    lblPortLabel->hide();
+    lblPortLabel->setObjectName("lblRdpPort");
+    m_editRdpPort = new QLineEdit("3389");
+    m_editRdpPort->hide();
 
     // 如果是运行状态且有 qemu-agent，启动时异步获取 IP
     if (status == "running") {
@@ -208,39 +161,45 @@ void VmCard::setupUI()
         m_apiClient->fetchVmIp(node, vmId);
     }
 
-    // --- 按钮行：快照管理 + 连接桌面 ---
-    QHBoxLayout *btnRow = new QHBoxLayout();
-    btnRow->setSpacing(8);
-
-    m_btnSnapshot = new QPushButton("📷 快照");
+    m_btnSnapshot = new QPushButton("快照");
     m_btnSnapshot->setCursor(Qt::PointingHandCursor);
     m_btnSnapshot->setStyleSheet(
-        "QPushButton { border: 1px solid #c8d4e8; border-radius: 8px; padding: 6px 12px; color: #556a8a; font-size: 13px; background: transparent; }"
+        "QPushButton { border: 1px solid #c8d4e8; border-radius: 6px; padding: 4px 10px; color: #556a8a; font-size: 12px; background: transparent; }"
         "QPushButton:hover { border-color: #3b71ca; color: #3b71ca; }"
     );
-    connect(m_btnSnapshot, &QPushButton::clicked, this, [this]() {
-        QMessageBox::information(this, "快照管理", "快照管理功能开发中…");
-    });
+    connect(m_btnSnapshot, &QPushButton::clicked, this, [this](){ QMessageBox::information(this,"快照","快照管理..."); });
 
-    m_btnConnect = new QPushButton("▶  连接桌面");
+    m_btnConnect = new QPushButton("连接桌面");
     m_btnConnect->setCursor(Qt::PointingHandCursor);
     m_btnConnect->setStyleSheet(
-        "QPushButton { border: none; border-radius: 8px; padding: 6px 14px; color: white; font-size: 13px; font-weight: bold; background-color: #1a56db; }"
+        "QPushButton { border: none; border-radius: 6px; padding: 6px 16px; color: white; font-size: 13px; font-weight: bold; background-color: #1a56db; }"
         "QPushButton:hover { background-color: #1e65e8; }"
         "QPushButton:disabled { background-color: #aab4cc; }"
     );
 
-    // 只有 running 状态才能连接
     bool running = (status == "running");
     m_btnConnect->setEnabled(running);
     if (!running) m_btnConnect->setToolTip("虚拟机未运行");
-
     connect(m_btnConnect, &QPushButton::clicked, this, &VmCard::onConnectClicked);
 
-    btnRow->addWidget(m_btnSnapshot);
-    btnRow->addStretch();
-    btnRow->addWidget(m_btnConnect);
-    layout->addLayout(btnRow);
+    bottomActRow->addWidget(m_cmbProtocol);
+    bottomActRow->addWidget(m_cmbPower);
+    bottomActRow->addWidget(m_btnSnapshot);
+    bottomActRow->addStretch();
+    bottomActRow->addWidget(m_btnConnect);
+
+    layout->addLayout(bottomActRow);
+    
+    // 隐藏行容器（适配 Protocol 切换）
+    QWidget *portRowWidget = new QWidget();
+    portRowWidget->setObjectName("portRowWidget");
+    QHBoxLayout *prL = new QHBoxLayout(portRowWidget);
+    prL->setContentsMargins(0,0,0,0);
+    prL->addWidget(lblPortLabel);
+    prL->addWidget(m_editRdpPort);
+    prL->addStretch();
+    layout->addWidget(portRowWidget);
+    portRowWidget->hide();
 }
 
 // ========== 工具方法 ==========

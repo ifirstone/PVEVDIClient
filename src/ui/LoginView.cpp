@@ -8,6 +8,8 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QDebug>
+#include <QNetworkInterface>
+#include <QHostAddress>
 
 LoginView::LoginView(ConfigManager *configManager, PveAuthManager *authManager, QWidget *parent)
     : QWidget(parent)
@@ -152,10 +154,18 @@ void LoginView::setupUI()
     connect(m_editPassword, &QLineEdit::returnPressed, this, &LoginView::onLoginClicked);
     cardLayout->addWidget(m_editPassword);
 
-    // ---- 自动登录复选框 ----
+    // ---- 自动登录与辅助链接 ----
+    QHBoxLayout *loginOptionsLayout = new QHBoxLayout();
     m_chkAutoLogin = new QCheckBox("自动登录");
     m_chkAutoLogin->setStyleSheet("color: #3a5080; font-size: 13px;");
-    cardLayout->addWidget(m_chkAutoLogin);
+    
+    QLabel *lblForgot = new QLabel("<a href=\"#\" style=\"color:#8a99b5; text-decoration:none;\">忘记账号/注册</a>");
+    
+    loginOptionsLayout->addWidget(m_chkAutoLogin);
+    loginOptionsLayout->addStretch();
+    loginOptionsLayout->addWidget(lblForgot);
+    
+    cardLayout->addLayout(loginOptionsLayout);
 
     // ---- 错误提示 ----
     m_lblError = new QLabel();
@@ -252,8 +262,46 @@ void LoginView::setupUI()
     centerRow->addStretch();
     rootLayout->addLayout(centerRow);
 
-    // ---- 底部弹性空间 ----
+    // ---- 底部软垫 ----
     rootLayout->addStretch(1);
+
+    // ---- 全屏底部系统状态指示栏 ----
+    QHBoxLayout *statusBarLayout = new QHBoxLayout();
+    statusBarLayout->setContentsMargins(24, 6, 24, 6);
+
+    QWidget *statusBarWidget = new QWidget(this);
+    statusBarWidget->setStyleSheet("background-color: rgba(10, 15, 25, 140); color: rgba(255, 255, 255, 140); font-size: 11px;");
+    statusBarWidget->setLayout(statusBarLayout);
+
+    // 抓取本机内网 IP
+    QString localIp = "127.0.0.1";
+    for (const QHostAddress &address : QNetworkInterface::allAddresses()) {
+        if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost)) {
+            QString ipStr = address.toString();
+            // 剔除虚拟网卡 IP
+            if (!ipStr.startsWith("169.254") && !ipStr.startsWith("172.17") && !ipStr.startsWith("172.18")) {
+                localIp = ipStr;
+                break;
+            }
+        }
+    }
+
+    QLabel *lblClientInfo = new QLabel(QString("客户端名: PVEClient\t本地地址: %1").arg(localIp));
+    QLabel *lblVersion = new QLabel("开源版 v1.0.0 PVE Thin Client");
+    m_lblDateTime = new QLabel(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
+
+    statusBarLayout->addWidget(lblClientInfo);
+    statusBarLayout->addStretch();
+    statusBarLayout->addWidget(lblVersion);
+    statusBarLayout->addStretch();
+    statusBarLayout->addWidget(m_lblDateTime);
+
+    rootLayout->addWidget(statusBarWidget);
+
+    // 启动系统级时间刷新器
+    m_timer = new QTimer(this);
+    connect(m_timer, &QTimer::timeout, this, &LoginView::updateTime);
+    m_timer->start(1000);
 }
 
 // ========== 槽函数 ==========
@@ -356,5 +404,12 @@ void LoginView::onReboot()
         // Windows 下调用重启命令
         QProcess::startDetached("shutdown", QStringList() << "/r" << "/t" << "0");
 #endif
+    }
+}
+
+void LoginView::updateTime()
+{
+    if (m_lblDateTime) {
+        m_lblDateTime->setText(QDateTime::currentDateTime().toString("MM-dd HH:mm:ss"));
     }
 }

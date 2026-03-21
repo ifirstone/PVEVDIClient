@@ -6,6 +6,8 @@
 #include <QPushButton>
 #include <QCheckBox>
 #include <QLabel>
+#include <QTimer>
+#include <QDateTime>
 
 #include "../core/ConfigManager.h"
 #include "../pve/PveAuthManager.h"
@@ -29,6 +31,7 @@ private slots:
     void onAuthFailed(const QString &error);
     void onShutdown();
     void onReboot();
+    void updateTime();
 
 protected:
     // 绘制全屏壁纸背景
@@ -47,6 +50,10 @@ private:
     QCheckBox  *m_chkAutoLogin;
     QPushButton *m_btnLogin;
     QLabel     *m_lblError;
+    
+    // 底部状态栏组件
+    QLabel     *m_lblDateTime;
+    QTimer     *m_timer;
 
     // 壁纸
     QPixmap m_background;

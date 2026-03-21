@@ -6,6 +6,9 @@
 #include <QLabel>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QPixmap>
+#include <QTimer>
+#include <QDateTime>
 
 #include "../core/ConfigManager.h"
 #include "../core/ConnectionManager.h"
@@ -37,6 +40,12 @@ private slots:
     void onApiError(const QString &error);
     void onVmIpReceived(const QString &node, int vmId, const QStringList &ips);
 
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
 private:
     void setupUI();
     void clearCards();
@@ -57,6 +66,10 @@ private:
 
     // 存储当前加载的 VM 列表（node/vmid -> VmCard）
     QList<VmCard*> m_cards;
+
+    QPixmap     m_background;
+    QLabel      *m_lblDateTime;
+    QTimer      *m_timer;
 };
 
 #endif // WORKSPACEVIEW_H

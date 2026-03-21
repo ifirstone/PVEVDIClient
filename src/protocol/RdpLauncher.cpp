@@ -130,12 +130,29 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
         args << "/tls-seclevel:0";
     }
 
-    // 在 ARM 等低配盒子上，强制 32 位色宽和 v2 级压缩会造成 CPU 软解严重卡顿 (一帧一帧显现)。
-    // 这里去除硬编码，直接使用 FreeRDP 默认的最底层自适应 GDI 渲染，恢复极致丝滑。
-    // args << "/compression-level:2" << "/bpp:32" << "+fonts";
+    // ================= 核心渲染与画质控制（源自商用版黄金传参）=================
+    // 动态分辨率支持（拖拽窗口大小或系统切屏时自适应）
+    args << "/dynamic-resolution";
+    // 强制使用硬件 GDI 渲染（大幅降低 ARM CPU 占用，避免全屏撕裂）
+    args << "/gdi:hw";
+    // 触控与手势支持（兼容会议平板和触屏一体机终端）
+    args << "+multitouch" << "+gestures";
+    
+    // 网络与连接容灾
+    args << "/network:auto";                 // 自动适应网络带宽调整帧率
+    args << "+auto-reconnect" << "/auto-reconnect-max-retries:3"; // 闪断自动重连
+    
+    // 核心解码与缓存策略（极大提升低端盒子的刷屏流畅度）
+    args << "/codec-cache:rfx" << "+gfx-progressive" << "+bitmap-cache";
+    
+    // 关闭终端乱刷日志提升 I/O 性能
+    args << "/log-level:OFF";
 
-    // 额外自定义参数
-    if (!info.extraArgs.isEmpty()) {
+    // // 在 ARM 等低配盒子上，强制 32 位色宽和 v2 级压缩会造成 CPU 软解严重卡顿 (一帧一帧显现)。
+    // // 竞品使用了 /bpp:32 /compression-level:2 配合 /gfx:RFX 硬件解码。
+    // // 如果我们的盒子不支持 RFX 硬解，使用这些参数会极其卡顿。为了安全起见，我们仅使用基础的 GDI:hw 和 cache，
+    // // 或者我们可以把它们加上，让用户自己在连接设置里选择是否开启（当前留空使用智能默认值）。
+    // // args << "/bpp:32" << "/compression-level:2";
         args << info.extraArgs.split(" ", QString::SkipEmptyParts);
     }
 
