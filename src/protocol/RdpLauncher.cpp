@@ -39,17 +39,10 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     // 认证信息
     if (!info.username.isEmpty()) {
         args << QString("/u:%1").arg(info.username);
-    } else {
-        // 为了实现空密直连并在远程画面输入密码，我们需要随意提供一个假账号，
-        // 否则 freeRDP 必定在终端抛出提示符索要系统本地用户名对应的密码并引起阻塞。
-        args << "/u:GuestUser";
     }
-
+    
     if (!info.password.isEmpty()) {
         args << QString("/p:%1").arg(info.password);
-    } else {
-        // Windows 默认不允许使用空密码进行 RDP 登录，为了让画面弹出来要求重新输入，传一个假密码
-        args << "/p:DefaultRDPPassword01!";
     }
     if (!info.domain.isEmpty()) {
         args << QString("/d:%1").arg(info.domain);
@@ -137,8 +130,9 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
         args << "/tls-seclevel:0";
     }
 
-    // 压缩与色彩优化降低卡顿
-    args << "/compression-level:2" << "/bpp:32" << "+fonts";
+    // 在 ARM 等低配盒子上，强制 32 位色宽和 v2 级压缩会造成 CPU 软解严重卡顿 (一帧一帧显现)。
+    // 这里去除硬编码，直接使用 FreeRDP 默认的最底层自适应 GDI 渲染，恢复极致丝滑。
+    // args << "/compression-level:2" << "/bpp:32" << "+fonts";
 
     // 额外自定义参数
     if (!info.extraArgs.isEmpty()) {
