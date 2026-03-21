@@ -1,7 +1,12 @@
 #include "RdpLauncher.h"
 #include <QDebug>
 #include <QFile>
+#include <QFileInfo>
 #include <QDir>
+#include <QProcess>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QStandardPaths>
 #include <QMessageBox>
 
@@ -18,6 +23,19 @@ bool RdpLauncher::launch(const ConnectionInfo &info)
     if (program.isEmpty()) {
         emit connectionError("未找到 xfreerdp 客户端程序，请确认系统已安装 freerdp 客户端组件");
         return false;
+    }
+
+    // 如果启用了 USB 驱动器重定向，在启动前先同步一次，然后启动定时轮询
+    if (info.enableUSBDrive) {
+        syncUsbMounts();
+        // 启动后台定时器，每 3 秒刷新一次 USB 设备软链接
+        if (!m_usbWatchTimer) {
+            m_usbWatchTimer = new QTimer(this);
+            connect(m_usbWatchTimer, &QTimer::timeout, this, [](){
+                RdpLauncher::syncUsbMounts();
+            });
+        }
+        m_usbWatchTimer->start(3000);
     }
 
     qDebug() << "启动 RDP 连接:" << program << args;
@@ -211,4 +229,97 @@ QString RdpLauncher::xfreerdpPath() const
     }
 
     return QString(); // 未找到
+}
+
+// ========== USB 安全沙箱同步器 ==========
+// 通过 lsblk 的 HOTPLUG 属性精确识别可移动 USB 设备，
+// 只将真正的 USB 设备挂载点软链接到沙箱目录中，
+// 彻底隔离系统盘，防止越权访问。
+void RdpLauncher::syncUsbMounts()
+{
+#ifndef Q_OS_WIN
+    QString sandboxDir = USB_SANDBOX_DIR;
+    QDir sandbox(sandboxDir);
+    if (!sandbox.exists()) {
+        sandbox.mkpath(".");
+    }
+    
+    // 第一步：清理沙箱目录中所有旧的软链接
+    QFileInfoList existing = sandbox.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+    for (const QFileInfo &fi : existing) {
+        if (fi.isSymLink()) {
+            QFile::remove(fi.absoluteFilePath());
+        }
+    }
+    
+    // 第二步：使用 lsblk 获取所有块设备信息（JSON 格式）
+    // 输出字段：NAME, MOUNTPOINT, HOTPLUG, TYPE
+    // HOTPLUG=1 表示可移动设备（USB 等）
+    // TYPE=part 表示分区
+    QProcess lsblk;
+    lsblk.start("lsblk", QStringList() << "-J" << "-o" << "NAME,MOUNTPOINT,HOTPLUG,TYPE");
+    if (!lsblk.waitForFinished(3000)) {
+        qDebug() << "USB 探测器: lsblk 执行超时";
+        return;
+    }
+    
+    QByteArray output = lsblk.readAllStandardOutput();
+    QJsonParseError parseErr;
+    QJsonDocument doc = QJsonDocument::fromJson(output, &parseErr);
+    if (parseErr.error != QJsonParseError::NoError) {
+        qDebug() << "USB 探测器: lsblk JSON 解析失败:" << parseErr.errorString();
+        return;
+    }
+    
+    // 第三步：遍历所有块设备，筛选出 HOTPLUG=1 且有挂载点的分区
+    QJsonArray devices = doc.object().value("blockdevices").toArray();
+    int linkedCount = 0;
+    
+    // 递归函数：扫描设备及其子分区
+    std::function<void(const QJsonObject&, bool)> scanDevice;
+    scanDevice = [&](const QJsonObject &dev, bool parentIsHotplug) {
+        bool isHotplug = dev.value("hotplug").toString() == "1" || 
+                         dev.value("hotplug").toBool() == true ||
+                         parentIsHotplug;
+        QString mountpoint = dev.value("mountpoint").toString();
+        QString type = dev.value("type").toString();
+        QString name = dev.value("name").toString();
+        
+        // 只处理可移动设备的分区，且必须有有效的挂载点
+        if (isHotplug && type == "part" && !mountpoint.isEmpty() && mountpoint != "/") {
+            // 安全检查：确保不是挂载在根目录或关键系统路径上
+            if (mountpoint.startsWith("/boot") || 
+                mountpoint.startsWith("/usr") || 
+                mountpoint.startsWith("/var") ||
+                mountpoint.startsWith("/etc") ||
+                mountpoint.startsWith("/home") ||
+                mountpoint == "/") {
+                qDebug() << "USB 探测器: 跳过系统路径" << mountpoint;
+                return;
+            }
+            
+            // 创建软链接: /tmp/pxvdi_usb_share/<设备名> -> <实际挂载点>
+            QString linkPath = sandboxDir + "/" + name;
+            if (!QFile::exists(linkPath)) {
+                QFile::link(mountpoint, linkPath);
+                qDebug() << "USB 探测器: 链接 USB 设备" << name << "->" << mountpoint;
+                linkedCount++;
+            }
+        }
+        
+        // 递归扫描子设备（分区）
+        QJsonArray children = dev.value("children").toArray();
+        for (const QJsonValue &child : children) {
+            scanDevice(child.toObject(), isHotplug);
+        }
+    };
+    
+    for (const QJsonValue &dev : devices) {
+        scanDevice(dev.toObject(), false);
+    }
+    
+    if (linkedCount > 0) {
+        qDebug() << "USB 探测器: 已同步" << linkedCount << "个 USB 设备到沙箱目录";
+    }
+#endif
 }

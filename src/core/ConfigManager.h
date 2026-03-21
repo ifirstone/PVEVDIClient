@@ -29,7 +29,11 @@ public:
     QString pveHost() const;
     int pvePort() const;
     QString pveUsername() const;
+    QString pvePassword() const;
+    bool rememberPassword() const;
     void setPveServer(const QString &host, int port, const QString &username);
+    void setPvePassword(const QString &password);
+    void setRememberPassword(bool enabled);
 
     // 全局设置
     QString language() const;
@@ -77,6 +81,8 @@ private:
     QString m_pveHost;
     int m_pvePort = 8006;
     QString m_pveUsername;
+    QString m_pvePassword;
+    bool m_rememberPassword = false;
 
     // 全局设置
     QString m_language = "zh_CN";

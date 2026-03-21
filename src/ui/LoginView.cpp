@@ -156,10 +156,18 @@ void LoginView::setupUI()
     connect(m_editPassword, &QLineEdit::returnPressed, this, &LoginView::onLoginClicked);
     cardLayout->addWidget(m_editPassword);
 
-    // ---- 自动登录 ----
+    // ---- 记住密码 ----
     QHBoxLayout *loginOptionsLayout = new QHBoxLayout();
-    m_chkAutoLogin = new QCheckBox("自动登录");
+    m_chkAutoLogin = new QCheckBox("记住密码");
     m_chkAutoLogin->setStyleSheet("color: #3a5080; font-size: 13px;");
+    
+    // 恢复上次的"记住密码"状态
+    m_chkAutoLogin->setChecked(m_configManager->rememberPassword());
+    
+    // 如果上次勾选了记住密码，自动回填已保存的密码
+    if (m_configManager->rememberPassword() && !m_configManager->pvePassword().isEmpty()) {
+        m_editPassword->setText(m_configManager->pvePassword());
+    }
     
     loginOptionsLayout->addWidget(m_chkAutoLogin);
     loginOptionsLayout->addStretch();
@@ -341,12 +349,19 @@ void LoginView::onAuthSuccess(const QString &username)
 {
     m_btnLogin->setEnabled(true);
     m_btnLogin->setText("登  录");
-    m_editPassword->clear();
 
     // 保存用户名到配置
     m_configManager->setPveServer(m_configManager->pveHost(),
                                   m_configManager->pvePort(),
                                   username);
+    
+    // 处理"记住密码"逻辑
+    m_configManager->setRememberPassword(m_chkAutoLogin->isChecked());
+    if (m_chkAutoLogin->isChecked()) {
+        m_configManager->setPvePassword(m_editPassword->text());
+    }
+    
+    m_editPassword->clear();
     m_configManager->save();
 
     // 发射信号通知 MainWindow 切换到工作台

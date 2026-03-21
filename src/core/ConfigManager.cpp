@@ -60,6 +60,11 @@ bool ConfigManager::load(const QString &filePath)
         m_pveHost = server["host"].toString();
         m_pvePort = server["port"].toInt(8006);
         m_pveUsername = server["username"].toString();
+        m_rememberPassword = server["remember_password"].toBool(false);
+        if (m_rememberPassword) {
+            // 密码以 Base64 简单编码存储，避免明文直接暴露
+            m_pvePassword = QString::fromUtf8(QByteArray::fromBase64(server["password"].toString().toUtf8()));
+        }
     }
 
     // 解析连接列表
@@ -102,6 +107,10 @@ bool ConfigManager::save(const QString &filePath)
     server["host"] = m_pveHost;
     server["port"] = m_pvePort;
     server["username"] = m_pveUsername;
+    server["remember_password"] = m_rememberPassword;
+    if (m_rememberPassword && !m_pvePassword.isEmpty()) {
+        server["password"] = QString::fromUtf8(m_pvePassword.toUtf8().toBase64());
+    }
     root["pve_server"] = server;
 
     // 连接列表
@@ -184,12 +193,29 @@ void ConfigManager::removeConnection(const QString &id)
 QString ConfigManager::pveHost() const { return m_pveHost; }
 int ConfigManager::pvePort() const { return m_pvePort; }
 QString ConfigManager::pveUsername() const { return m_pveUsername; }
+QString ConfigManager::pvePassword() const { return m_pvePassword; }
+bool ConfigManager::rememberPassword() const { return m_rememberPassword; }
 
 void ConfigManager::setPveServer(const QString &host, int port, const QString &username)
 {
     m_pveHost = host;
     m_pvePort = port;
     m_pveUsername = username;
+    save();
+}
+
+void ConfigManager::setPvePassword(const QString &password)
+{
+    m_pvePassword = password;
+    save();
+}
+
+void ConfigManager::setRememberPassword(bool enabled)
+{
+    m_rememberPassword = enabled;
+    if (!enabled) {
+        m_pvePassword.clear(); // 取消勾选时清除已保存的密码
+    }
     save();
 }
 
