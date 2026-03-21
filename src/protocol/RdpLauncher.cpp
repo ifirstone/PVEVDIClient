@@ -135,18 +135,23 @@ QStringList RdpLauncher::buildArguments(const ConnectionInfo &info) const
     args << "/dynamic-resolution";
     // 强制使用硬件 GDI 渲染（大幅降低 ARM CPU 占用，避免全屏撕裂）
     args << "/gdi:hw";
-    // 触控与手势支持（兼容会议平板和触屏一体机终端）
-    args << "+multitouch" << "+gestures";
     
     // 网络与连接容灾
     args << "/network:auto";                 // 自动适应网络带宽调整帧率
     args << "+auto-reconnect" << "/auto-reconnect-max-retries:3"; // 闪断自动重连
     
-    // 核心解码与缓存策略（极大提升低端盒子的刷屏流畅度）
-    args << "/codec-cache:rfx" << "+gfx-progressive" << "+bitmap-cache";
-    
     // 关闭终端乱刷日志提升 I/O 性能
     args << "/log-level:OFF";
+
+    if (isFreeRDP3) {
+        // FreeRDP 3.x 全新语法 (冒号替代旧版的加号或短划线)
+        args << "/multitouch" << "/gestures";
+        args << "/cache:codec:rfx" << "/gfx:progressive" << "/cache:bitmap";
+    } else {
+        // FreeRDP 2.x 向下兼容语法
+        args << "+multitouch" << "+gestures";
+        args << "/codec-cache:rfx" << "+gfx-progressive" << "+bitmap-cache";
+    }
 
     // // 在 ARM 等低配盒子上，强制 32 位色宽和 v2 级压缩会造成 CPU 软解严重卡顿 (一帧一帧显现)。
     // // 竞品使用了 /bpp:32 /compression-level:2 配合 /gfx:RFX 硬件解码。

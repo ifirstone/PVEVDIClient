@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QNetworkInterface>
 #include <QHostAddress>
+#include "../core/DebugLogger.h"
 
 LoginView::LoginView(ConfigManager *configManager, PveAuthManager *authManager, QWidget *parent)
     : QWidget(parent)
@@ -204,6 +205,19 @@ void LoginView::setupUI()
     bottomBarLayout->setSpacing(12);
     bottomBarLayout->setContentsMargins(0, 16, 0, 0);
 
+    // 调试日志 - 灰色
+    QPushButton *btnDebug = new QPushButton("🐛 运行日志");
+    btnDebug->setCursor(Qt::PointingHandCursor);
+    btnDebug->setStyleSheet(
+        "QPushButton { color: white; background: #64748b; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; padding: 7px 16px; }"
+        "QPushButton:hover { background: #94a3b8; }"
+        "QPushButton:pressed { background: #475569; }"
+    );
+    connect(btnDebug, &QPushButton::clicked, this, [](){
+        DebugLogger::instance().show();
+        DebugLogger::instance().raise();
+    });
+
     // 设置 - 蓝色
     QPushButton *btnSettings = new QPushButton("\u2699 设置");
     btnSettings->setCursor(Qt::PointingHandCursor);
@@ -235,6 +249,7 @@ void LoginView::setupUI()
     connect(btnShutdown, &QPushButton::clicked, this, &LoginView::onShutdown);
     connect(btnReboot,   &QPushButton::clicked, this, &LoginView::onReboot);
 
+    bottomBarLayout->addWidget(btnDebug);
     bottomBarLayout->addWidget(btnSettings);
     bottomBarLayout->addStretch();
     bottomBarLayout->addWidget(btnShutdown);

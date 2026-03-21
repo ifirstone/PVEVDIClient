@@ -16,6 +16,7 @@ SOURCES += \
     src/core/ConfigManager.cpp \
     src/core/ProcessRunner.cpp \
     src/core/ConnectionManager.cpp \
+    src/core/DebugLogger.cpp \
     src/pve/PveApiClient.cpp \
     src/pve/PveAuthManager.cpp \
     src/protocol/RdpLauncher.cpp \
@@ -35,6 +36,7 @@ HEADERS += \
     src/core/ConfigManager.h \
     src/core/ProcessRunner.h \
     src/core/ConnectionManager.h \
+    src/core/DebugLogger.h \
     src/pve/PveApiClient.h \
     src/pve/PveAuthManager.h \
     src/protocol/AbstractLauncher.h \

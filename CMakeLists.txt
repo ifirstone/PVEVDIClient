@@ -29,6 +29,7 @@ set(SOURCES
     src/core/ConfigManager.cpp
     src/core/ProcessRunner.cpp
     src/core/ConnectionManager.cpp
+    src/core/DebugLogger.cpp
 
     # PVE API
     src/pve/PveApiClient.cpp
@@ -52,6 +53,7 @@ set(HEADERS
     src/core/ConfigManager.h
     src/core/ProcessRunner.h
     src/core/ConnectionManager.h
+    src/core/DebugLogger.h
 
     # PVE API
     src/pve/PveApiClient.h

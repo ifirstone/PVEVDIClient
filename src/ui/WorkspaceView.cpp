@@ -15,6 +15,7 @@
 #include <QHostAddress>
 #include <QDateTime>
 #include <QTimer>
+#include "../core/DebugLogger.h"
 
 WorkspaceView::WorkspaceView(ConfigManager *configManager,
                              PveApiClient *apiClient,
@@ -79,17 +80,30 @@ void WorkspaceView::setupUI()
     topLayout->addWidget(m_lblUser);
     topLayout->addStretch();
 
+    // 调试按钮
+    QPushButton *btnDebug = new QPushButton("🐛 运行日志");
+    btnDebug->setCursor(Qt::PointingHandCursor);
+    btnDebug->setStyleSheet(
+        "QPushButton { color: white; font-size: 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 14px; margin-right: 15px; }"
+        "QPushButton:hover { background: rgba(255,255,255,0.2); }"
+    );
+    connect(btnDebug, &QPushButton::clicked, this, [](){
+        DebugLogger::instance().show();
+        DebugLogger::instance().raise();
+    });
+
     // 右侧：用户注销按钮
-    QPushButton *btnLogout = new QPushButton();
-    btnLogout->setText("⏏ 注销");
+    QPushButton *btnLogout = new QPushButton("⏏ 注销");
     btnLogout->setCursor(Qt::PointingHandCursor);
     btnLogout->setStyleSheet(
         "QPushButton { color: white; font-size: 14px; background: transparent; border: none; }"
-        "QPushButton:hover { color: #cccccc; }"
+        "QPushButton:pressed { background: rgba(255,255,255,0.2) }"
     );
     connect(btnLogout, &QPushButton::clicked, this, &WorkspaceView::logoutRequested);
-    topLayout->addWidget(btnLogout);
 
+    topLayout->addWidget(btnDebug);
+    topLayout->addWidget(btnLogout);
+    
     rootLayout->addWidget(topBar);
 
     // ---- 操作栏悬浮区（刷新按钮） ----
