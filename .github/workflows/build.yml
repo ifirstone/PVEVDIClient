@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ============================================================
+  # Linux x86_64 — 标准 GitHub 托管运行器
+  # ============================================================
   build-linux-x64:
     name: Build Linux x86_64
     runs-on: ubuntu-latest
@@ -26,7 +29,6 @@ jobs:
     - name: 编译项目 (Build)
       run: |
         mkdir build && cd build
-        # 寻找 .pro 文件
         PRO_FILE=$(find .. -maxdepth 2 -name "*.pro" | head -n 1)
         qmake $PRO_FILE
         make -j$(nproc)
@@ -38,28 +40,31 @@ jobs:
         path: bin/PVEClient
         retention-days: 7
 
+  # ============================================================
+  # Linux ARM64 — GitHub 原生 ARM 运行器 (免费公开仓库可用)
+  # 使用 ubuntu-24.04-arm 标签，由 GitHub 官方提供真实 ARM 机器
+  # 比 QEMU 模拟快 10 倍以上，无需 Docker/run-on-arch
+  # ============================================================
   build-linux-arm64:
-    name: Build Linux ARM64
-    runs-on: ubuntu-latest
+    name: Build Linux ARM64 (Native)
+    runs-on: ubuntu-24.04-arm
     steps:
     - name: 检出源码 (Checkout)
       uses: actions/checkout@v4
 
-    - name: 在 ARM64 模拟环境中编译 (Build on ARM64 via QEMU)
-      uses: uraimo/run-on-arch-action@v2
-      with:
-        arch: aarch64
-        distro: ubuntu22.04
-        githubToken: ${{ github.token }}
-        run: |
-          apt-get update
-          apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
-                             libqt5network5 libqt5gui5 libqt5widgets5 \
-                             libqt5svg5 libqt5svg5-dev
-          mkdir build && cd build
-          PRO_FILE=$(find .. -maxdepth 2 -name "*.pro" | head -n 1)
-          qmake $PRO_FILE
-          make -j$(nproc)
+    - name: 安装 Qt 与依赖 (Install Dependencies)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
+                                libqt5network5 libqt5gui5 libqt5widgets5 \
+                                libqt5svg5 libqt5svg5-dev
+
+    - name: 编译项目 (Build)
+      run: |
+        mkdir build && cd build
+        PRO_FILE=$(find .. -maxdepth 2 -name "*.pro" | head -n 1)
+        qmake $PRO_FILE
+        make -j$(nproc)
 
     - name: 上传构建产物 (Upload Artifact)
       uses: actions/upload-artifact@v4
@@ -68,6 +73,9 @@ jobs:
         path: bin/PVEClient
         retention-days: 7
 
+  # ============================================================
+  # Windows x86_64 — 标准 GitHub 托管运行器
+  # ============================================================
   build-windows-x64:
     name: Build Windows x86_64
     runs-on: windows-latest

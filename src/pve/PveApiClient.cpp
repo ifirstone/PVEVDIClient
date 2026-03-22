@@ -367,6 +367,9 @@ QNetworkReply* PveApiClient::get(const QString &path)
     sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
     request.setSslConfiguration(sslConfig);
 
+    // 请求超时保护：避免弱网环境下 UI 线程永久挂起
+    request.setTransferTimeout(10000); // 10 秒超时
+
     return m_networkManager->get(request);
 }
 
@@ -384,6 +387,9 @@ QNetworkReply* PveApiClient::post(const QString &path, const QJsonObject &data)
     QSslConfiguration sslConfig = request.sslConfiguration();
     sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
     request.setSslConfiguration(sslConfig);
+
+    // 请求超时保护：避免弱网环境下 UI 线程永久挂起
+    request.setTransferTimeout(10000); // 10 秒超时
 
     QJsonDocument doc(data);
     return m_networkManager->post(request, doc.toJson());
