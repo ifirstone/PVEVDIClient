@@ -455,7 +455,6 @@ void SettingsDialog::onAccepted()
 
     if (!host.isEmpty()) {
         m_config->setPveServer(host, port, m_config->pveUsername());
-        m_config->save();
     }
 
     m_config->setTheme(m_comboTheme->currentData().toString());

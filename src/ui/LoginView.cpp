@@ -374,8 +374,6 @@ void LoginView::onAuthSuccess(const QString &username)
         m_configManager->setPvePassword(m_editPassword->text());
     }
     
-    // 注意：不再清空密码框，因为注销后可能还需要显示
-    // m_editPassword->clear(); 
     m_configManager->save();
 
     // 发射信号通知 MainWindow 切换到工作台

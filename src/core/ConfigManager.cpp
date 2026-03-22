@@ -222,13 +222,11 @@ void ConfigManager::setPveServer(const QString &host, int port, const QString &u
     m_pveHost = host;
     m_pvePort = port;
     m_pveUsername = username;
-    save();
 }
 
 void ConfigManager::setPvePassword(const QString &password)
 {
     m_pvePassword = password;
-    save();
 }
 
 void ConfigManager::setRememberPassword(bool enabled)
@@ -237,7 +235,6 @@ void ConfigManager::setRememberPassword(bool enabled)
     if (!enabled) {
         m_pvePassword.clear(); // 取消勾选时清除已保存的密码
     }
-    save();
 }
 
 // 全局设置 getter
@@ -248,19 +245,18 @@ bool ConfigManager::autoConnect() const { return m_autoConnect; }
 QString ConfigManager::autoConnectId() const { return m_autoConnectId; }
 
 // 全局设置 setter
-void ConfigManager::setLanguage(const QString &lang) { m_language = lang; save(); }
-void ConfigManager::setTheme(const QString &theme) { m_theme = theme; save(); }
-void ConfigManager::setKioskMode(bool enabled) { m_kioskMode = enabled; save(); }
+void ConfigManager::setLanguage(const QString &lang) { m_language = lang; }
+void ConfigManager::setTheme(const QString &theme) { m_theme = theme; }
+void ConfigManager::setKioskMode(bool enabled) { m_kioskMode = enabled; }
 void ConfigManager::setAutoConnect(bool enabled, const QString &connectionId)
 {
     m_autoConnect = enabled;
     m_autoConnectId = connectionId;
-    save();
 }
 
 // 调试模式 getter/setter
 bool ConfigManager::debugMode() const { return m_debugMode; }
-void ConfigManager::setDebugMode(bool enabled) { m_debugMode = enabled; save(); }
+void ConfigManager::setDebugMode(bool enabled) { m_debugMode = enabled; }
 
 // RDP 外设重定向 getter
 bool ConfigManager::rdpSound()      const { return m_rdpSound; }
@@ -279,7 +275,6 @@ void ConfigManager::setRdpRedirection(bool sound, bool mic, bool clipboard,
     m_rdpUsbDrive   = usb;
     m_rdpSmartcard  = smartcard;
     m_rdpPrinter    = printer;
-    save();
 }
 
 // RDP 高级性能与编解码设置
@@ -299,5 +294,4 @@ void ConfigManager::setRdpAdvanced(int version, const QString &codec, int colorD
     m_rdpNetwork = network;
     m_rdpScale = scale;
     m_rdpUsermode = usermode;
-    save();
 }
