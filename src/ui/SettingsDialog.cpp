@@ -2,14 +2,14 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QFormLayout>
-#include <QGroupBox>
+#include <QGridLayout>
 #include <QIntValidator>
 #include <QMessageBox>
+#include <QTcpSocket>
+#include <QAbstractSocket>
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
-#include <QUrl>
 #include <QSslConfiguration>
 #include <QDebug>
 
@@ -404,48 +404,42 @@ void SettingsDialog::onTestConnection()
     int port = m_editPort->text().toInt();
     if (host.isEmpty()) {
         m_lblTestResult->setStyleSheet("font-size: 12px; color: #c0392b;");
-        m_lblTestResult->setText("✗ 请先输入服务器地址");
+        m_lblTestResult->setText("X 请先输入服务器地址");
         return;
     }
     if (port <= 0) port = 8006;
 
     m_btnTest->setEnabled(false);
-    m_btnTest->setText("测试中…");
+    m_btnTest->setText("测试中...");
     m_lblTestResult->setStyleSheet("font-size: 12px; color: #7f8c8d;");
-    m_lblTestResult->setText("正在连接…");
+    m_lblTestResult->setText("正在连接...");
 
-    // 发送一个简单 GET 请求到 /api2/json/version 来验证连通性
-    QString url = QString("https://%1:%2/api2/json/version").arg(host).arg(port);
-    QNetworkAccessManager *nam = new QNetworkAccessManager(this);
+    // 使用 TCP Socket 方式验证连通性
+    // 避免直接发 HTTPS 请求——全志盒子 OpenSSL 环境不稳定，SSL 握手会触发 SIGSEGV 崩溃
+    QTcpSocket *sock = new QTcpSocket(this);
 
-    QNetworkRequest request(url);
-    // 忽略自签名 SSL 证书
-    QSslConfiguration sslConf = QSslConfiguration::defaultConfiguration();
-    sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
-    request.setSslConfiguration(sslConf);
-    request.setTransferTimeout(6000);
-
-    QNetworkReply *reply = nam->get(request);
-
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+    // 连接成功 -> 说明目标端口可达
+    connect(sock, &QTcpSocket::connected, this, [this, sock]() {
         m_btnTest->setEnabled(true);
         m_btnTest->setText("测试连接");
-
-        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        if (reply->error() == QNetworkReply::NoError && statusCode == 200) {
-            m_lblTestResult->setStyleSheet("font-size: 12px; color: #27ae60; font-weight: bold;");
-            m_lblTestResult->setText("✓ 连接成功！PVE 服务器可达");
-        } else if (statusCode > 0) {
-            // HTTP 回来了但状态非 200，说明服务器可达
-            m_lblTestResult->setStyleSheet("font-size: 12px; color: #27ae60; font-weight: bold;");
-            m_lblTestResult->setText(QString("✓ 服务器可达 (HTTP %1)").arg(statusCode));
-        } else {
-            m_lblTestResult->setStyleSheet("font-size: 12px; color: #c0392b; font-weight: bold;");
-            m_lblTestResult->setText("✗ 连接失败：" + reply->errorString());
-        }
-        reply->deleteLater();
+        m_lblTestResult->setStyleSheet("font-size: 12px; color: #27ae60; font-weight: bold;");
+        m_lblTestResult->setText("成功！PVE 服务器端口可达");
+        sock->disconnectFromHost();
+        sock->deleteLater();
     });
+
+    // 连接失败 -> 报告错误原因
+    connect(sock, &QAbstractSocket::errorOccurred, this, [this, sock](QAbstractSocket::SocketError) {
+        m_btnTest->setEnabled(true);
+        m_btnTest->setText("测试连接");
+        m_lblTestResult->setStyleSheet("font-size: 12px; color: #c0392b; font-weight: bold;");
+        m_lblTestResult->setText("X 连接失败: " + sock->errorString());
+        sock->deleteLater();
+    });
+
+    sock->connectToHost(host, static_cast<quint16>(port));
 }
+
 
 void SettingsDialog::onAccepted()
 {
