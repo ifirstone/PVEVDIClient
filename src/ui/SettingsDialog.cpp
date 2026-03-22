@@ -3,6 +3,8 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
+#include <QFormLayout>
+#include <QGroupBox>
 #include <QIntValidator>
 #include <QMessageBox>
 #include <QTcpSocket>
