@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="styles/dark_theme.qss">styles/dark_theme.qss</file>
+        <file alias="icons/os_windows.svg">icons/os_windows.svg</file>
+        <file alias="icons/os_linux.svg">icons/os_linux.svg</file>
+        <file alias="icons/os_macos.svg">icons/os_macos.svg</file>
+        <file alias="icons/os_redhat.svg">icons/os_redhat.svg</file>
+        <file alias="icons/os_generic.svg">icons/os_generic.svg</file>
+        <file alias="icons/cloud_desktop.svg">icons/cloud_desktop.svg</file>
+        <file alias="icons/Wallpaper.jpg">icons/Wallpaper.jpg</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- 显示器 -->
+  <rect x="6" y="4" width="36" height="26" rx="3" fill="#4a5568"/>
+  <!-- 屏幕 -->
+  <rect x="9" y="7" width="30" height="20" rx="1" fill="#63b3ed"/>
+  <!-- 显示器支架 -->
+  <rect x="20" y="30" width="8" height="6" fill="#4a5568"/>
+  <!-- 底座 -->
+  <rect x="14" y="36" width="20" height="4" rx="2" fill="#4a5568"/>
+  <!-- 屏幕高光 -->
+  <rect x="11" y="9" width="12" height="8" rx="1" fill="rgba(255,255,255,0.15)"/>
+</svg>

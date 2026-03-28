@@ -1,0 +1,674 @@
+#include "VmCard.h"
+
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QMessageBox>
+#include <QPainter>
+#include <QPainterPath>
+#include <QIntValidator>
+#include <QSignalBlocker>
+#include <QTimer>
+#include <QDebug>
+#include <QPixmap>
+
+VmCard::VmCard(const QJsonObject &vmInfo,
+               ConfigManager *configManager,
+               ConnectionManager *connectionManager,
+               PveApiClient *apiClient,
+               QWidget *parent)
+    : QWidget(parent)
+    , m_vmInfo(vmInfo)
+    , m_configManager(configManager)
+    , m_connectionManager(connectionManager)
+    , m_apiClient(apiClient)
+{
+    setupUI();
+
+    // 连接管理器信号
+    connect(m_connectionManager, &ConnectionManager::connectionStarted,
+            this, &VmCard::onConnectionStarted);
+    connect(m_connectionManager, &ConnectionManager::connectionEnded,
+            this, &VmCard::onConnectionEnded);
+    connect(m_connectionManager, &ConnectionManager::connectionError,
+            this, &VmCard::onConnectionError);
+
+    // 权限检查信号
+    connect(m_apiClient, &PveApiClient::permissionsReceived,
+            this, &VmCard::onPermissionsReceived);
+}
+
+void VmCard::setupUI()
+{
+    QString name   = m_vmInfo["name"].toString();
+    if (name.isEmpty()) name = QString("VM-%1").arg(m_vmInfo["vmid"].toInt());
+    QString status = m_vmInfo["status"].toString();
+    int     vmId   = m_vmInfo["vmid"].toInt();
+    QString node   = m_vmInfo["node"].toString();
+
+    // --- 卡片外观 ---
+    setObjectName("vmCard");
+    setFixedWidth(380);
+    // QWidget 默认不绘制背景，必须设置此属性才能让 stylesheet 白色背景真正生效
+    setAttribute(Qt::WA_StyledBackground, true);
+    setStyleSheet(
+        // 卡片本身：白色圆角 + 柔和边框
+        "#vmCard {"
+        "  background-color: #ffffff;"
+        "  border-radius: 12px;"
+        "  border: 1px solid rgba(180,195,215,0.4);"
+        "}"
+        "#vmCard:hover {"
+        "  border-color: #3b71ca;"
+        "  background-color: #fcfdff;"
+        "}"
+        "#vmCard QWidget { background: transparent; }"
+        "#vmCard QLabel  { color: #1a2a4a; background: transparent; }"
+        "#vmCard QFrame  { background: transparent; }"
+        "#vmCard QComboBox {"
+        "  background: #f8faff;"
+        "  color: #3a5080;"
+        "  border: 1px solid #c8d4e8;"
+        "  border-radius: 6px;"
+        "  padding: 4px 8px;"
+        "  height: 28px;"
+        "  font-size: 12px;"
+        "}"
+        "#vmCard QComboBox:hover { border-color: #3b71ca; }"
+        "#vmCard QComboBox QAbstractItemView {"
+        "  background: #ffffff;"
+        "  color: #1a2a4a;"
+        "  selection-background-color: #e8f0fe;"
+        "}"
+    );
+
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(20, 20, 20, 16);
+    layout->setSpacing(12);
+
+    // --- 顶部：OS图标 + 名称+ID ---
+    QHBoxLayout *headerRow = new QHBoxLayout();
+
+    m_lblOsIcon = new QLabel();
+    m_lblOsIcon->setAlignment(Qt::AlignCenter);
+    m_lblOsIcon->setFixedSize(48, 48);
+    // 从 Qt 资源系统中加载 SVG 图标，确保跨平台显示
+    QPixmap osPix(osIcon());
+    if (!osPix.isNull()) {
+        m_lblOsIcon->setPixmap(osPix.scaled(42, 42, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+
+    QVBoxLayout *nameCol = new QVBoxLayout();
+    m_lblName = new QLabel(name);
+    m_lblName->setStyleSheet("font-size: 15px; font-weight: bold; color: #1a2a4a;");
+    m_lblName->setWordWrap(true);
+    QLabel *lblIdNode = new QLabel(QString("VM %1  [%2]").arg(vmId).arg(node));
+    lblIdNode->setStyleSheet("font-size: 12px; color: #7a8aaa;");
+    nameCol->addWidget(m_lblName);
+    nameCol->addWidget(lblIdNode);
+
+    // 右上角自动启动开关（单选语义：全局仅一台）
+    m_chkAutoStartup = new QCheckBox(this);
+    m_chkAutoStartup->setCursor(Qt::PointingHandCursor);
+    m_chkAutoStartup->setToolTip("设置为开机自动启动并自动连接");
+    m_chkAutoStartup->setStyleSheet(
+        "QCheckBox::indicator {"
+        " width: 36px; height: 20px;"
+        " border-radius: 10px;"
+        " background: #d1d5db;"
+        " border: 1px solid #cbd5e1;"
+        "}"
+        "QCheckBox::indicator:checked {"
+        " background: #22c55e;"
+        " border: 1px solid #16a34a;"
+        "}"
+    );
+
+    m_lblAutoStartupHint = new QLabel(this);
+    m_lblAutoStartupHint->setTextFormat(Qt::RichText);
+    m_lblAutoStartupHint->setStyleSheet("font-size: 10px; color: #94a3b8; font-weight: 600;");
+    m_lblAutoStartupHint->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+    QVBoxLayout *autoStartupCol = new QVBoxLayout();
+    autoStartupCol->setSpacing(2);
+    autoStartupCol->setContentsMargins(0, 0, 0, 0);
+    autoStartupCol->addWidget(m_chkAutoStartup, 0, Qt::AlignRight);
+    autoStartupCol->addWidget(m_lblAutoStartupHint, 0, Qt::AlignRight);
+
+    headerRow->addWidget(m_lblOsIcon);
+    headerRow->addLayout(nameCol);
+    headerRow->addStretch();
+    headerRow->addLayout(autoStartupCol);
+    layout->addLayout(headerRow);
+
+    // --- 状态标签与 IP 标签同行 ---
+    QHBoxLayout *statusRow = new QHBoxLayout();
+    m_lblStatus = new QLabel();
+    updateStatusStyle();
+    statusRow->addWidget(m_lblStatus);
+    statusRow->addSpacing(10);
+
+    m_lblIp = new QLabel(""); // 初始不显示文字也不占据明显空间
+    m_lblIp->setStyleSheet("font-size: 11px; color: #8899aa;");
+    m_lblIp->hide(); // 默认隐藏，等有 IP 或者有状态信息时再显示
+    statusRow->addWidget(m_lblIp);
+    statusRow->addStretch();
+
+    layout->addLayout(statusRow);
+
+    // --- 分割线 ---
+    QFrame *line = new QFrame();
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet("color: rgba(0,0,0,0.08);");
+    layout->addWidget(line);
+
+    // --- 合并后的底部操作排 ---
+    QHBoxLayout *bottomActRow = new QHBoxLayout();
+    bottomActRow->setSpacing(8);
+
+    auto makeCombo = [](const QString &prefix) -> QComboBox* { return new QComboBox(); };
+
+    m_cmbProtocol = makeCombo("");
+    m_cmbProtocol->addItem("SPICE");
+    m_cmbProtocol->addItem("RDP");
+    m_cmbProtocol->setFixedWidth(68);
+
+    m_cmbPower = makeCombo("");
+    m_cmbPower->addItem("电源管理");
+    m_cmbPower->addItem("开机");
+    m_cmbPower->addItem("关机");
+    m_cmbPower->addItem("重启");
+    m_cmbPower->addItem("断电");
+    m_cmbPower->setFixedWidth(86);
+    connect(m_cmbPower, QOverload<int>::of(&QComboBox::activated), this, [this](int idx) {
+        QStringList actions = {"", "start", "shutdown", "reset", "stop"};
+        if (idx > 0 && idx < actions.size()) { onPowerAction(actions[idx]); }
+    });
+
+    // 隐藏的 RDP 端口列
+    QLabel *lblPortLabel = new QLabel("RDP 端口: ");
+    m_editRdpPort = new QLineEdit("3389");
+    m_editRdpPort->setFixedWidth(60); // 避免输入框过长破坏布局
+    
+    QWidget *portRowWidget = new QWidget(this);
+    QHBoxLayout *prL = new QHBoxLayout(portRowWidget);
+    prL->setContentsMargins(0, 0, 0, 0);
+    prL->addWidget(lblPortLabel);
+    prL->addWidget(m_editRdpPort);
+    prL->addStretch();
+    
+    // 通过 Lambda 直接绑定，防止 findChild 原地失效
+    connect(m_cmbProtocol, &QComboBox::currentTextChanged, this, [portRowWidget](const QString &protocol){
+        portRowWidget->setVisible(protocol == "RDP");
+    });
+    portRowWidget->setVisible(m_cmbProtocol->currentText() == "RDP");
+
+    // 如果是运行状态且有 qemu-agent，启动时异步获取 IP
+    if (status == "running") {
+        m_waitingForIp = true;
+        m_apiClient->fetchVmIp(node, vmId);
+    }
+
+    m_btnSnapshot = new QPushButton("快照");
+    m_btnSnapshot->setCursor(Qt::PointingHandCursor);
+    m_btnSnapshot->setStyleSheet(
+        "QPushButton { border: 1px solid #c8d4e8; border-radius: 6px; padding: 4px 10px; color: #556a8a; font-size: 12px; background: transparent; }"
+        "QPushButton:hover { border-color: #3b71ca; color: #3b71ca; }"
+        "QPushButton:disabled { color: #cbd5e1; border-color: #e5e7eb; }"
+    );
+    m_btnSnapshot->setToolTip("加载权限中...");
+    m_btnSnapshot->setEnabled(false);  // 初始禁用，直到权限检查完成
+    connect(m_btnSnapshot, &QPushButton::clicked, this, [this](){ 
+        QMessageBox::information(this,"快照","快照管理..."); 
+    });
+
+    m_btnConnect = new QPushButton("连接桌面");
+    m_btnConnect->setCursor(Qt::PointingHandCursor);
+    m_btnConnect->setStyleSheet(
+        "QPushButton { border: none; border-radius: 6px; padding: 6px 16px; color: white; font-size: 13px; font-weight: bold; background-color: #1a56db; }"
+        "QPushButton:hover { background-color: #1e65e8; }"
+        "QPushButton:disabled { background-color: #aab4cc; }"
+    );
+
+    bool running = (status == "running");
+    m_btnConnect->setEnabled(running);
+    if (!running) m_btnConnect->setToolTip("虚拟机未运行");
+    connect(m_btnConnect, &QPushButton::clicked, this, &VmCard::onConnectClicked);
+
+    bottomActRow->addWidget(m_cmbProtocol);
+    bottomActRow->addWidget(m_cmbPower);
+    bottomActRow->addWidget(m_btnSnapshot);
+    bottomActRow->addStretch();
+    bottomActRow->addWidget(m_btnConnect);
+
+    layout->addLayout(bottomActRow);
+
+    // 将 RDP 端口栏挂载到底部布局的最下方
+    layout->addWidget(portRowWidget);
+
+    syncAutoStartupState();
+    connect(m_chkAutoStartup, &QCheckBox::toggled, this, [this](bool checked) {
+        const QString key = autoConnectKey();
+        const QString protocol = m_cmbProtocol->currentText();
+        if (checked) {
+            m_configManager->setAutoConnect(true, key, protocol);
+            m_configManager->save();
+            QMessageBox msgBox(this);
+            msgBox.setWindowTitle("自动启动");
+            msgBox.setIcon(QMessageBox::Information);
+            msgBox.setText(QString("已设置自动启动虚拟机：%1\n自动连接协议：%2")
+                           .arg(m_lblName->text(), protocol));
+            msgBox.setStandardButtons(QMessageBox::Ok);
+            msgBox.setDefaultButton(QMessageBox::Ok);
+            msgBox.setStyleSheet(
+                "QMessageBox {"
+                "  background-color: #ffffff;"
+                "  border-radius: 10px;"
+                "}"
+                "QLabel {"
+                "  color: #111827;"
+                "  font-size: 14px;"
+                "  font-family: 'Microsoft YaHei UI', 'PingFang SC', 'Segoe UI';"
+                "}"
+                "QPushButton {"
+                "  min-width: 72px;"
+                "  min-height: 30px;"
+                "  color: #111827;"
+                "  background: #f3f4f6;"
+                "  border: 1px solid #d1d5db;"
+                "  border-radius: 8px;"
+                "  font-size: 13px;"
+                "  font-family: 'Microsoft YaHei UI', 'PingFang SC', 'Segoe UI';"
+                "}"
+                "QPushButton:hover { background: #e5e7eb; }"
+                "QPushButton:pressed { background: #dbe1ea; }"
+            );
+            msgBox.exec();
+        } else if (m_configManager->autoConnectId() == key) {
+            m_configManager->setAutoConnect(false, QString());
+            m_configManager->save();
+        }
+    });
+
+    // 若当前卡片已被设置为自动启动目标，则协议切换时同步更新目标协议
+    connect(m_cmbProtocol, &QComboBox::currentTextChanged, this, [this](const QString &protocol) {
+        if (m_configManager->autoConnect() && m_configManager->autoConnectId() == autoConnectKey()) {
+            m_configManager->setAutoConnect(true, autoConnectKey(), protocol);
+            m_configManager->save();
+        }
+        updateAutoStartupHint();
+    });
+
+    // 当其他卡片改动自动启动目标时，同步当前开关状态
+    connect(m_configManager, &ConfigManager::configChanged, this, [this]() {
+        syncAutoStartupState();
+    });
+
+    // 查询当前用户在此 VM 上的权限 （快照功能）
+    QString vmPath = QString("/vms/%1").arg(vmId);
+    if (m_apiClient->isAuthenticated()) {
+        m_apiClient->checkPermissions(vmPath);
+    }
+}
+
+// ========== 工具方法 ==========
+
+QString VmCard::osIcon() const
+{
+    QString name = m_vmInfo["name"].toString().toLower();
+    if (name.contains("win"))    return ":/icons/os_windows.svg";
+    if (name.contains("ubuntu")) return ":/icons/os_linux.svg";
+    if (name.contains("debian")) return ":/icons/os_linux.svg";
+    if (name.contains("centos") || name.contains("rhel")) return ":/icons/os_redhat.svg";
+    if (name.contains("mac"))    return ":/icons/os_macos.svg";
+    return ":/icons/os_generic.svg";
+}
+
+void VmCard::updateStatusStyle()
+{
+    QString status = m_vmInfo["status"].toString();
+    if (status == "running") {
+        m_lblStatus->setText("● 运行中");
+        m_lblStatus->setStyleSheet("color: #27ae60; font-size: 13px; font-weight: bold;");
+    } else if (status == "stopped") {
+        m_lblStatus->setText("○ 已关机");
+        m_lblStatus->setStyleSheet("color: #7f8c8d; font-size: 13px;");
+    } else {
+        m_lblStatus->setText("◐ " + status);
+        m_lblStatus->setStyleSheet("color: #e67e22; font-size: 13px;");
+    }
+}
+
+QString VmCard::node()  const { return m_vmInfo["node"].toString(); }
+int     VmCard::vmId()  const { return m_vmInfo["vmid"].toInt(); }
+
+QString VmCard::autoConnectKey() const
+{
+    return QString("%1:%2").arg(node()).arg(vmId());
+}
+
+void VmCard::syncAutoStartupState()
+{
+    if (!m_chkAutoStartup || !m_configManager) {
+        return;
+    }
+
+    const bool checked = m_configManager->autoConnect()
+                         && !m_configManager->autoConnectId().isEmpty()
+                         && (m_configManager->autoConnectId() == autoConnectKey());
+    const QSignalBlocker blocker(m_chkAutoStartup);
+    m_chkAutoStartup->setChecked(checked);
+    updateAutoStartupHint();
+}
+
+void VmCard::updateAutoStartupHint()
+{
+    if (!m_lblAutoStartupHint || !m_chkAutoStartup || !m_configManager) {
+        return;
+    }
+
+    if (m_chkAutoStartup->isChecked()) {
+        const QString protocol = m_configManager->autoConnectProtocol().toUpper();
+        m_lblAutoStartupHint->setText(
+            QString("<span style='color:#16a34a;'>⚡</span> "
+                    "<span style='color:#16a34a; font-weight:700;'>自动启动</span>"
+                    "<span style='color:#6b7280;'> / </span>"
+                    "<span style='color:#0f766e; font-weight:700;'>%1</span>")
+                .arg(protocol)
+        );
+        m_lblAutoStartupHint->setToolTip(QString("当前自动启动协议：%1").arg(protocol));
+        m_lblAutoStartupHint->setStyleSheet("font-size: 10px;");
+    } else {
+        m_lblAutoStartupHint->setText(
+            "<span style='color:#94a3b8;'>○</span> "
+            "<span style='color:#94a3b8; font-weight:600;'>自动启动</span>"
+            "<span style='color:#cbd5e1;'> / </span>"
+            "<span style='color:#94a3b8;'>未启用</span>"
+        );
+        m_lblAutoStartupHint->setToolTip("当前未设置自动启动");
+        m_lblAutoStartupHint->setStyleSheet("font-size: 10px;");
+    }
+}
+
+void VmCard::triggerAutoConnect()
+{
+    // 自动连接协议以用户设置自动启动时所选协议为准
+    const QString protocol = m_configManager->autoConnectProtocol();
+    if (protocol == "SPICE") {
+        m_cmbProtocol->setCurrentText("SPICE");
+    } else {
+        m_cmbProtocol->setCurrentText("RDP");
+    }
+    m_autoStartupFlow = true;
+    m_autoStartupRetry = 0;
+
+    const QString status = m_vmInfo["status"].toString();
+    if (status == "running") {
+        onConnectClicked();
+        return;
+    }
+
+    // 未开机时先发起开机，再异步获取 IP 并自动连接
+    onPowerAction("start");
+    m_btnConnect->setEnabled(false);
+    m_btnConnect->setText("⏳ 启动中...");
+    m_waitingForIp = true;
+    m_apiClient->fetchVmIp(node(), vmId());
+}
+
+// ========== 槽函数 ==========
+
+void VmCard::onConnectClicked()
+{
+    QString protocol = m_cmbProtocol->currentText();
+    QString name = m_vmInfo["name"].toString();
+    int     vid  = m_vmInfo["vmid"].toInt();
+    QString nd   = m_vmInfo["node"].toString();
+
+    if (protocol == "SPICE") {
+        // SPICE 直接连接
+        ConnectionInfo info;
+        info.id         = ConnectionInfo::generateId();
+        info.name       = name;
+        info.serverHost = m_configManager->pveHost();
+        info.serverPort = m_configManager->pvePort();
+        info.node       = nd;
+        info.vmId       = vid;
+        info.protocol   = Protocol::SPICE;
+        info.resolution = "fullscreen";
+        m_connectionManager->connectTo(info);
+    } else {
+        // RDP
+        if (m_rdpIp.isEmpty()) {
+            // 还没获取到 IP，立即异步获取
+            m_btnConnect->setEnabled(false);
+            m_btnConnect->setText("⏳ 获取 IP...");
+            m_waitingForIp = true;
+            m_apiClient->fetchVmIp(nd, vid);
+        } else {
+            // 已有 IP，直接连接
+            doRdpConnect();
+        }
+    }
+}
+
+void VmCard::onIpReceived(const QStringList &ips)
+{
+    bool wasWaiting = m_waitingForIp;
+    m_waitingForIp = false;
+    m_btnConnect->setEnabled(true);
+    m_btnConnect->setText("\u25b6  \u8fde\u63a5\u684c\u9762");
+
+    if (!ips.isEmpty()) {
+        m_rdpIp = ips.first();
+        m_autoStartupFlow = false;
+        m_autoStartupRetry = 0;
+        // 更新卡片上的 IP 显示
+        m_lblIp->setText(QString("• IP: %1").arg(m_rdpIp));
+        m_lblIp->setStyleSheet("font-size: 11px; color: #2e86c1; font-weight: bold;");
+        m_lblIp->show();
+        // 如果是用户点连接触发的 IP 获取，自动建立连接
+        if (wasWaiting && m_cmbProtocol->currentText() == "RDP") {
+            doRdpConnect();
+        }
+    } else {
+        m_rdpIp.clear();
+        m_lblIp->setText("• IP: 未获取到主机IP");
+        m_lblIp->setStyleSheet("font-size: 11px; color: #c0392b;");
+        m_lblIp->show();
+
+        if (m_autoStartupFlow && m_autoStartupRetry < 3) {
+            m_autoStartupRetry++;
+            m_btnConnect->setEnabled(false);
+            m_btnConnect->setText(QString("⏳ 后台重试中...(%1/3)").arg(m_autoStartupRetry));
+            QTimer::singleShot(30000, this, [this]() {
+                if (m_autoStartupFlow) {
+                    m_waitingForIp = true;
+                    m_apiClient->fetchVmIp(node(), vmId());
+                }
+            });
+            return;
+        }
+
+        if (m_autoStartupFlow) {
+            m_autoStartupFlow = false;
+            m_autoStartupRetry = 0;
+            m_btnConnect->setEnabled(true);
+            m_btnConnect->setText("\u25b6  \u8fde\u63a5\u684c\u9762");
+            m_lblIp->setText("• IP: 自动连接失败，请手动处理");
+            m_lblIp->setStyleSheet("font-size: 11px; color: #c0392b; font-weight: bold;");
+            return;
+        }
+
+        if (wasWaiting && m_cmbProtocol->currentText() == "RDP") {
+            QMessageBox::warning(this, "\u63d0\u793a",
+                "\u672a\u83b7\u53d6\u5230 IP\uff0c\u65e0\u6cd5\u8fde\u63a5 RDP\u3002\n"
+                "\u8bf7\u786e\u8ba4 qemu-guest-agent \u5df2\u5b89\u88c5\u4e14 VM \u5df2\u542f\u52a8\u3002");
+        }
+    }
+}
+
+void VmCard::onPowerAction(const QString &action)
+{
+    int vmId     = m_vmInfo["vmid"].toInt();
+    QString node = m_vmInfo["node"].toString();
+    QString name = m_vmInfo["name"].toString();
+
+    QString confirmMsg;
+    if (action == "stop")  confirmMsg = QString("确定强制关闭 %1 吗？").arg(name);
+    if (action == "reset") confirmMsg = QString("确定重启 %1 吗？").arg(name);
+    if (action == "shutdown") confirmMsg = QString("确定安全关机 %1 吗？").arg(name);
+
+    if (!confirmMsg.isEmpty()) {
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle("确认操作");
+        msgBox.setText(confirmMsg);
+        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        msgBox.setDefaultButton(QMessageBox::No);
+        msgBox.setStyleSheet(
+            "QMessageBox { background-color: #ffffff; border-radius: 8px; }"
+            "QLabel { color: #1a2a4a; font-size: 14px; font-weight: bold; min-height: 40px; }"
+        );
+        
+        QPushButton *yesBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::Yes));
+        QPushButton *noBtn = static_cast<QPushButton*>(msgBox.button(QMessageBox::No));
+        if (yesBtn) {
+            yesBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级勾选图标
+            yesBtn->setText("确定");
+            yesBtn->setCursor(Qt::PointingHandCursor);
+            yesBtn->setStyleSheet(
+                "QPushButton { background-color: #ef4444; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+                "QPushButton:hover { background-color: #f87171; }"
+                "QPushButton:pressed { background-color: #dc2626; }"
+            );
+        }
+        if (noBtn) {
+            noBtn->setIcon(QIcon()); // 强制移除 Linux 可能附加的系统级取消图标
+            noBtn->setText("取消");
+            noBtn->setCursor(Qt::PointingHandCursor);
+            noBtn->setStyleSheet(
+                "QPushButton { background-color: #10b981; color: white; border: none; border-radius: 6px; padding: 6px 16px; font-weight: bold; min-width: 60px; }"
+                "QPushButton:hover { background-color: #34d399; }"
+                "QPushButton:pressed { background-color: #059669; }"
+            );
+        }
+        
+        if (msgBox.exec() != QMessageBox::Yes) {
+            return;
+        }
+    }
+
+    qDebug() << "电源操作:" << action << "VM:" << vmId << "节点:" << node;
+    if (action == "start")    m_apiClient->startVM(node, vmId);
+    else if (action == "shutdown" || action == "stop" || action == "reset")
+        m_apiClient->stopVM(node, vmId);   // 后续可细化 stop/reset 指令
+
+    m_cmbPower->setCurrentIndex(0);
+}
+
+void VmCard::onConnectionStarted(const ConnectionInfo &info)
+{
+    if (info.node == node() && info.vmId == vmId()) {
+        m_btnConnect->setText("已连接");
+        m_btnConnect->setEnabled(false);
+    }
+}
+
+void VmCard::onConnectionEnded(const ConnectionInfo &info, int)
+{
+    if (info.node == node() && info.vmId == vmId()) {
+        m_btnConnect->setText("▶  连接桌面");
+        m_btnConnect->setEnabled(m_vmInfo["status"].toString() == "running");
+    }
+}
+
+void VmCard::onConnectionError(const ConnectionInfo &info, const QString &error)
+{
+    if (info.node == node() && info.vmId == vmId()) {
+        m_waitingForIp = false;
+        m_btnConnect->setText("▶  连接桌面");
+        m_btnConnect->setEnabled(m_vmInfo["status"].toString() == "running");
+
+        // 仅在调试模式开启时，才弹出详细错误信息
+        if (m_configManager->debugMode()) {
+            QMessageBox::critical(parentWidget(), "连接错误", error);
+        }
+    }
+}
+
+void VmCard::doRdpConnect()
+{
+    if (m_rdpIp.isEmpty()) return;
+
+    int rdpPort = m_editRdpPort->text().toInt();
+    if (rdpPort <= 0) rdpPort = 3389;
+
+    ConnectionInfo info;
+    info.id         = ConnectionInfo::generateId();
+    info.name       = m_vmInfo["name"].toString();
+    info.serverHost = m_configManager->pveHost();
+    info.serverPort = m_configManager->pvePort();
+    info.node       = m_vmInfo["node"].toString();
+    info.vmId       = m_vmInfo["vmid"].toInt();
+    info.protocol   = Protocol::RDP;
+    info.rdpHost    = m_rdpIp;
+    info.rdpPort    = rdpPort;
+    // 静默写入默认账号与空密码，利用空参数绕过控制台死锁，将交互完全丢给 Windows 锁屏处理
+    info.username   = "administrator";
+    info.password   = "";
+    // 从全局设置读取外设重定向选项
+    info.enableSound      = m_configManager->rdpSound();
+    info.enableMicrophone = m_configManager->rdpMicrophone();
+    info.enableClipboard  = m_configManager->rdpClipboard();
+    info.enableUSBDrive   = m_configManager->rdpUsbDrive();
+    info.enableSmartcard  = m_configManager->rdpSmartcard();
+    info.enablePrinter    = m_configManager->rdpPrinter();
+    
+    // 注入 RDP 高级性能与编解码设置
+    info.rdpVersion    = m_configManager->rdpVersion();
+    info.rdpCodec      = m_configManager->rdpCodec();
+    info.rdpColorDepth = m_configManager->rdpColorDepth();
+    info.rdpNetwork    = m_configManager->rdpNetwork();
+    info.rdpScale      = m_configManager->rdpScale();
+    info.rdpUsermode   = m_configManager->rdpUsermode();
+
+    info.resolution       = "fullscreen";
+
+    m_connectionManager->connectTo(info);
+}
+
+void VmCard::onPermissionsReceived(const QString &path, const QStringList &permissions)
+{
+    // 检查路径是否匹配当前 VM
+    QString vmPath = QString("/vms/%1").arg(vmId());
+    if (path != vmPath) {
+        return;
+    }
+
+    // 检查用户是否有快照权限
+    bool hasSnapshotPermission = false;
+    for (const QString &perm : permissions) {
+        if (perm.startsWith("VM.Snapshot")) {
+            hasSnapshotPermission = true;
+            break;
+        }
+    }
+
+    m_hasSnapshotPermission = hasSnapshotPermission;
+
+    if (hasSnapshotPermission) {
+        m_btnSnapshot->setEnabled(true);
+        m_btnSnapshot->setToolTip("管理虚拟机快照");
+        if (m_configManager->debugMode()) {
+            qDebug() << "用户有快照权限:" << vmId();
+        }
+    } else {
+        m_btnSnapshot->setEnabled(false);
+        m_btnSnapshot->setToolTip("当前账号无快照权限");
+        if (m_configManager->debugMode()) {
+            qWarning() << "用户无快照权限:" << vmId() << "权限列表:" << permissions;
+        }
+    }
+}
+
+
+

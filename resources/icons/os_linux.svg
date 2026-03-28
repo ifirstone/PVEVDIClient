@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- 身体 -->
+  <ellipse cx="24" cy="30" rx="12" ry="14" fill="#333333"/>
+  <!-- 肚子 -->
+  <ellipse cx="24" cy="32" rx="8" ry="10" fill="#e8c84a"/>
+  <!-- 头 -->
+  <circle cx="24" cy="14" r="9" fill="#333333"/>
+  <!-- 左眼白 -->
+  <ellipse cx="20.5" cy="12.5" rx="3" ry="3.5" fill="white"/>
+  <!-- 右眼白 -->
+  <ellipse cx="27.5" cy="12.5" rx="3" ry="3.5" fill="white"/>
+  <!-- 左眼珠 -->
+  <circle cx="21" cy="13" r="1.5" fill="#111"/>
+  <!-- 右眼珠 -->
+  <circle cx="27" cy="13" r="1.5" fill="#111"/>
+  <!-- 嘴 -->
+  <path d="M21 17.5 Q24 20 27 17.5" fill="#e8941a" stroke="#c07010" stroke-width="0.5"/>
+  <!-- 左脚 -->
+  <ellipse cx="18" cy="44" rx="5" ry="2.5" fill="#e8941a"/>
+  <!-- 右脚 -->
+  <ellipse cx="30" cy="44" rx="5" ry="2.5" fill="#e8941a"/>
+</svg>
