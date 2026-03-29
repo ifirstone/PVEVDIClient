@@ -20,6 +20,20 @@
 - deploy/linux/openbox-autostart-example.sh
 - pveclient-install.sh
 
+## 1.1 界面效果图（Demo）
+
+项目内效果图位于 Demo 目录，文件为 Demo01~Demo05：
+
+![Demo01](Demo/Demo01.png)
+
+![Demo02](Demo/Demo02.png)
+
+![Demo03](Demo/Demo03.png)
+
+![Demo04](Demo/Demo04.png)
+
+![Demo05](Demo/Demo05.png)
+
 
 ## 2. 目录约定
 
